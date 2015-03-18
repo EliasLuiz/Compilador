@@ -12,8 +12,8 @@ import java.util.LinkedHashMap;
 
 public class AnalisadorLexico {
     
-    LinkedHashMap<Integer, ArrayList<String>> tokens;
-    HashMap<String, String> lexemas;
+    private LinkedHashMap<Integer, ArrayList<String>> tokens;
+    private HashMap<String, String> lexemas;
     
     public AnalisadorLexico(){        
         tokens = new LinkedHashMap<>();
@@ -64,9 +64,9 @@ public class AnalisadorLexico {
     
     public void analisar(String path) throws IOException{
         BufferedReader b = carregar("exemplo.txt");
-        String s;
+        String linha;
         while(b.ready()){
-            s = b.readLine();
+            linha = b.readLine();
             
             // 1TO DO
             
