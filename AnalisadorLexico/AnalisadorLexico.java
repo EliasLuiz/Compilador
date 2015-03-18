@@ -65,11 +65,24 @@ public class AnalisadorLexico {
     public void analisar(String path) throws IOException{
         BufferedReader b = carregar("exemplo.txt");
         String linha;
+        int nlinha = 0;
+        char c;
         while(b.ready()){
             linha = b.readLine();
             
-            // 1TO DO
+            for(int i = 0; i < linha.length(); i++){
+                
+                c = linha.charAt(i);
+                
+                //TO DO
+                
+                
+            }
             
+            // TO DO
+            
+            
+            nlinha++;
         }
     }
     
