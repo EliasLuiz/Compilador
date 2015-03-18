@@ -1,24 +1,21 @@
 package AnalisadorLexico;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class AnalisadorLexico {
     
     LinkedHashMap<Integer, ArrayList<String>> tokens;
     HashMap<String, String> lexemas;
     
-    public AnalisadorLexico(String path){        
+    public AnalisadorLexico(){        
         tokens = new LinkedHashMap<>();
         lexemas = new HashMap<>();
         
@@ -35,10 +32,12 @@ public class AnalisadorLexico {
         //Comparativos
         lexemas.put(">", "gt");
         lexemas.put(">=", "gte");
+        lexemas.put("=>", "gte");
         lexemas.put("<", "lt");
+        lexemas.put("<=", "lte");
         lexemas.put("=<", "lte");
         lexemas.put("==", "eq");
-        lexemas.put("!=", "eq");
+        lexemas.put("!=", "neq");
         //Gerais
         lexemas.put("=", "atrib");
         lexemas.put("int", "int,");
@@ -63,29 +62,35 @@ public class AnalisadorLexico {
         
     }
     
-    private static BufferedReader carrega (String path) throws IOException{
+    public void analisar(String path) throws IOException{
+        BufferedReader b = carregar("exemplo.txt");
+        String s;
+        while(b.ready()){
+            s = b.readLine();
+            
+            // 1TO DO
+            
+        }
+    }
+    
+    private BufferedReader carregar(String path) throws IOException{
         BufferedReader reader;
         reader = new BufferedReader(new InputStreamReader(
                     new FileInputStream(path), "Cp1252"));
         return reader;
     }
     
-    private static void salva(String path) throws IOException{
-        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
-                    new FileOutputStream(path + ".lex"), "Cp1252"));
-        
-        //Serializa o linkedhashmap de tokens e salva
-        
+    public void salvar(String path) throws IOException{
+        FileOutputStream fos = new FileOutputStream(path);
+        ObjectOutputStream oos = new ObjectOutputStream(fos);
+        oos.writeObject(tokens);
+        oos.close();
+        fos.close();
     }
     
-    public static void main(String[] args) {
-        BufferedReader reader;
-        try {
-            reader = carrega("teste.txt" /*pegar argumento args*/ );
-        } catch (IOException ex) {
-            Logger.getLogger(AnalisadorLexico.class.getName()).log(Level.SEVERE, null, ex);
-            System.exit(1);
-        }
-        
+    public static void main(String[] args) throws IOException, ClassNotFoundException{
+        AnalisadorLexico a = new AnalisadorLexico();
+        a.analisar("exemplo.txt");
+        a.salvar("tokens.txt");
     }
 }
