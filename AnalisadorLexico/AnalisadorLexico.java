@@ -23,29 +23,29 @@ public class AnalisadorLexico {
 
         //############### LEXEMAS DA LINGUAGEM #################
         //Aritmeticos
-        lexemas.put("+", "sum");
-        lexemas.put("-", "sub");
-        lexemas.put("*", "mult");
-        lexemas.put(" x ", "mult");
-        lexemas.put("/", "div");
-        lexemas.put(":", "div");
-        lexemas.put(".", ".");
-        lexemas.put(",", ".");
+        lexemas.put("+", "+");
+        lexemas.put("-", "-");
+        lexemas.put("*", "*");
+        lexemas.put(" x ", "*");
+        lexemas.put("/", "/");
+        lexemas.put(":", "/");
+        //lexemas.put(".", ".");
+        //lexemas.put(",", ",");
         //Comparativos
-        lexemas.put(">", "gt");
-        lexemas.put(">=", "gte");
-        lexemas.put("=>", "gte");
-        lexemas.put("<", "lt");
-        lexemas.put("<=", "lte");
-        lexemas.put("=<", "lte");
-        lexemas.put("==", "eq");
-        lexemas.put("!=", "neq");
+        lexemas.put(">", ">");
+        lexemas.put(">=", ">=");
+        lexemas.put("=>", "=>");
+        lexemas.put("<", "<");
+        lexemas.put("<=", "<=");
+        lexemas.put("=<", "=<");
+        lexemas.put("==", "==");
+        lexemas.put("!=", "!=");
         //Gerais
-        lexemas.put("(", "paren1");
-        lexemas.put(")", "paren2");
-        lexemas.put("[", "colch1");
-        lexemas.put("]", "colch2");
-        lexemas.put("=", "atrib");
+        lexemas.put("(", "(");
+        lexemas.put(")", ")");
+        lexemas.put("[", "[");
+        lexemas.put("]", "]");
+        lexemas.put("=", "=");
         lexemas.put("int", "int");
         lexemas.put("float", "float");
         lexemas.put("str", "str,");
@@ -70,15 +70,16 @@ public class AnalisadorLexico {
 
     }
 
-    public ArrayList<Token> analisarExpressao(String linha, Bool isFuncao, Bool isComment) throws IOException {
+    public ArrayList<Token> analisarExpressao(String linha, Bool isFuncao, Bool isComment,
+            Inteiro pos) throws IOException {
         char c;
         boolean isString = false, isInt = false, isFloat = false, isVar = false;
         int lexBegin = 0;
         ArrayList<Token> lista = new ArrayList<>();
 
-        for (int i = 0; i < linha.length(); i++) {
+        for (pos.x = pos.x; pos.x < linha.length(); pos.x++) {
 
-            c = linha.charAt(i);
+            c = linha.charAt(pos.x);
 
             //Identificacao de comentarios
             if (c == '#') {
@@ -94,9 +95,9 @@ public class AnalisadorLexico {
             else if (c == '"') {
                 //Caso seja string pode ir qualquer coisa dentro
                 if (isString) {
-                    lista.add(new Token("str", linha.substring(lexBegin, i-1)));
+                    lista.add(new Token("str", linha.substring(lexBegin, pos.x-1)));
                 } else {
-                    lexBegin = i + 1;
+                    lexBegin = pos.x + 1;
                 }
                 isString = !isString;
             }
@@ -104,16 +105,11 @@ public class AnalisadorLexico {
             //Caso seja uma expressao
             else if (!isString) {
                 
-                if (c == ')') {
-                    lista.add(new Token(lexemas.get(")"), ""));
-                    return lista;
-                }
-                
                 //Tratamento de numeros
                 if (Character.isDigit(c)) {
                     if (!isVar && !isInt && !isFloat) {
                         isInt = true;
-                        lexBegin = i;
+                        lexBegin = pos.x;
                     }
                 }
                 
@@ -127,7 +123,7 @@ public class AnalisadorLexico {
                 else if (Character.isLetter(c) && !isVar) {
                     isVar = true;
                     if (!isInt && !isFloat) {
-                        lexBegin = i;
+                        lexBegin = pos.x;
                     } else {
                         isInt = false;
                         isFloat = false;
@@ -136,14 +132,20 @@ public class AnalisadorLexico {
                 
                 //Gerando tokens para quem estava ativo
                 else if(isVar){
-                    lista.add(new Token("var", linha.substring(lexBegin, i)));
+                    lista.add(new Token("var", linha.substring(lexBegin, pos.x)));
                     isVar = false;
                 } else if(isInt) {
-                    lista.add(new Token("int", linha.substring(lexBegin, i)));
+                    lista.add(new Token("int", linha.substring(lexBegin, pos.x)));
                     isInt = false;
                 } else if(isFloat) {
-                    lista.add(new Token("float", linha.substring(lexBegin, i)));
+                    lista.add(new Token("float", linha.substring(lexBegin, pos.x)));
                     isFloat = false;
+                }
+                
+                //Termino da recursao
+                if (c == ')') {
+                    lista.add(new Token(lexemas.get(")"), ""));
+                    return lista;
                 }
                 
                 
@@ -160,14 +162,14 @@ public class AnalisadorLexico {
                     Bool aux = new Bool();
                     aux.x = isFuncao.x;
                     //Caso esteja iniciando uma chamada de funcao
-                    if (!lista.isEmpty() && lista.get(lista.size() - 1).tipo == "var") {
+                    if (!lista.isEmpty() && lista.get(lista.size() - 1).tipo.equals("var")) {
                         lista.get(lista.size() - 1).tipo = lexemas.get("fun");
                         isFuncao.x = true;
                     //Caso seja apenas uma expressao entre parenteses
                     } else {
                         isFuncao.x = false;
                     }
-                    l = analisarExpressao(linha.substring(i + 1), isFuncao, isComment);
+                    l = analisarExpressao(linha.substring(pos.x + 1), isFuncao, isComment, pos);
                     isFuncao.x = aux.x;
                     lista.add(new Token(lexemas.get("("), ""));
                     for (Token t : l) {
@@ -178,21 +180,24 @@ public class AnalisadorLexico {
                 //Caso seja um operador
                 else {
                     String c1 = "", c2 = "";
-                    if(linha.length() - i > 1)
-                        c1 += linha.charAt(i+1);
-                    if(linha.length() - i > 2){
-                        c2 += linha.charAt(i+2);
+                    if(linha.length() - pos.x > 1)
+                        c1 += linha.charAt(pos.x+1);
+                    if(linha.length() - pos.x > 2){
+                        c2 += linha.charAt(pos.x+2);
                     }
                     String res;
                     if(lexemas.get(c + c1 + c2) != null){
                         res = lexemas.get(c + c1 + c2);
-                        i += 2;
+                        pos.x += 2;
                     } else if (lexemas.get(c + c1) != null){
                         res = lexemas.get(c + c1);
-                        i += 1;
+                        pos.x += 1;
                     } else if (lexemas.get(c + "") != null){
                         res = lexemas.get(c + "");
                     }
+                    else
+                        continue;
+                    lista.add(new Token(res, ""));
                 }
             }
         }
@@ -231,13 +236,18 @@ public class AnalisadorLexico {
     public void analisar(String path) throws IOException {
         int nlinha = 0;
         Bool isComment = new Bool(), isFuncao = new Bool();
+        Inteiro pos = new Inteiro();
+        pos.x = 0;
         isComment.x = false;
         isFuncao.x = false;
 
         BufferedReader b = carregar(path);
 
         while (b.ready()) {
-            ArrayList<Token> lista = analisarExpressao(b.readLine(), isFuncao, isComment);
+            
+            pos.x = 0;
+            
+            ArrayList<Token> lista = analisarExpressao(b.readLine(), isFuncao, isComment, pos);
 
             if (!lista.isEmpty()) {
                 tokens.put(nlinha, lista);
@@ -261,3 +271,4 @@ public class AnalisadorLexico {
 //Classe criada para que o valor de booleanos pudessem ser utilizado
 //atraves de varias chamadas de funcao
 class Bool{ public boolean x; }
+class Inteiro{ public int x; }
