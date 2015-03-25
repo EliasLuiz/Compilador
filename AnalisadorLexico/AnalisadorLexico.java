@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.ListIterator;
-import java.util.Map;
 import java.util.Stack;
 
 public class AnalisadorLexico {
@@ -30,8 +29,8 @@ public class AnalisadorLexico {
         lexemas.put(" x ", "*");
         lexemas.put("/", "/");
         lexemas.put(":", "/");
-        //lexemas.put(".", ".");
-        //lexemas.put(",", ".");
+        lexemas.put(".", ".");
+        lexemas.put(",", ".");
         //Comparativos
         lexemas.put(">", ">");
         lexemas.put(">=", ">=");
@@ -55,7 +54,7 @@ public class AnalisadorLexico {
         lexemas.put("str", "str,");
         lexemas.put("var", "var");
         lexemas.put("fun", "fun");
-        lexemas.put("vetor", "decl");
+        lexemas.put("vetor", "decl vetor");
         //Palavras-chave
         //Condicionais
         lexemas.put("se", "cond");
@@ -66,7 +65,7 @@ public class AnalisadorLexico {
         lexemas.put("para", "forloop");
         lexemas.put("de", "rng1forloop");
         lexemas.put("até", "rng2forloop");
-        lexemas.put("faça", "initforloop");
+        lexemas.put("faça", "initloop");
         lexemas.put("fim-para", "endforloop");
         lexemas.put("enquanto", "whileloop");
         lexemas.put("fim-enquanto", "endwhileloop");
@@ -92,6 +91,12 @@ public class AnalisadorLexico {
     public void analisar(String path) throws IOException {
         
         BufferedReader b = carregar(path);
+            
+        //variaveis de controle de estado
+        boolean isString = false, isInt = false, isFloat = false, isVar = false,
+                isComment = false;
+        Stack<Boolean> isFuncao = new Stack<>();
+        isFuncao.push(new Boolean(false));
 
         while (b.ready()) {
             
@@ -99,12 +104,6 @@ public class AnalisadorLexico {
             String linha;
             linha = b.readLine();
             char c;
-            
-            //variaveis de controle de estado
-            boolean isString = false, isInt = false, isFloat = false, isVar = false,
-                    isComment = false;
-            Stack<Boolean> isFuncao = new Stack<>();
-            isFuncao.push(new Boolean(false));
             
             //variaveis auxiliares
             int lexBegin = 0, nlinha = 0;
@@ -130,7 +129,7 @@ public class AnalisadorLexico {
                 else if (c == '"') {
                     //Caso seja string pode ir qualquer coisa dentro
                     if (isString) {
-                        lista.add(new Token("str", linha.substring(lexBegin, i-1)));
+                        lista.add(new Token("str", linha.substring(lexBegin, i)));
                     } else {
                         lexBegin = i + 1;
                     }
@@ -156,15 +155,19 @@ public class AnalisadorLexico {
                         isFloat = true;
                     }
 
-                    //
-                    else if (Character.isLetter(c) && !isVar) {
-                        isVar = true;
-                        if (!isInt && !isFloat) {
-                            lexBegin = i;
-                        } else {
-                            isInt = false;
-                            isFloat = false;
+                    //Detecta inicio de uma possivel variavel
+                    else if (Character.isLetter(c) || c == '-' || c == '_') {
+                        if(!isVar){
+                            isVar = true;
+                            if (!isInt && !isFloat) { //variavel que inicia em numero???????????????????
+                                lexBegin = i;
+                            } else {
+                                isInt = false;
+                                isFloat = false;
+                            }
                         }
+                        else
+                            continue;
                     } 
 
                     //Gerando tokens para quem estava ativo
@@ -176,7 +179,7 @@ public class AnalisadorLexico {
                         isInt = false;
                     } else if(isFloat) {
                         System.out.print("gera token float");
-                        lista.add(new Token("float", linha.substring(lexBegin, i)));
+                        lista.add(new Token("float", linha.substring(lexBegin, i).replace(",", ".")));
                         isFloat = false;
                     }
 
@@ -185,6 +188,7 @@ public class AnalisadorLexico {
                         isVar = false;
                         isFloat = false;
                         isInt = false;
+                        lista.add(new Token(",", ""));
                     }
 
                     //Chama a funcao recursivamente para analisar o conteudo
@@ -208,7 +212,7 @@ public class AnalisadorLexico {
                     } 
 
                     //Caso seja um operador
-                    else {
+                    else if (!isVar && !isInt && !isFloat){
                         String c1 = "", c2 = "";
                         if(linha.length() - i > 1)
                             c1 += linha.charAt(i+1);
@@ -239,7 +243,7 @@ public class AnalisadorLexico {
                 lista.add(new Token("int", linha.substring(lexBegin)));
                 isInt = false;
             } else if(isFloat) {
-                lista.add(new Token("float", linha.substring(lexBegin)));
+                lista.add(new Token("float", linha.substring(lexBegin).replace(",", ".")));
                 isFloat = false;
             }
 
@@ -258,19 +262,19 @@ public class AnalisadorLexico {
             //Se houverem tokens na linha adiciona no hashmap
             if (!lista.isEmpty()) {
                 tokens.put(nlinha, lista);
+                System.out.println("");
             }
 
             nlinha++;
 
             for(Token t : lista)
-                System.out.print(t);
-            System.out.println("");
+                System.out.print(t + " ");
         }
     }
 
     public static void main(String[] args) throws IOException, ClassNotFoundException {
         AnalisadorLexico a = new AnalisadorLexico();
         a.analisar("exemplo.txt");
-        //a.salvar("tokens.txt");
+        a.salvar("tokens.txt");
     }
 }

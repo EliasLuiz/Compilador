@@ -1,6 +1,8 @@
 package AnalisadorLexico;
 
-public class Token {
+import java.io.Serializable;
+
+public class Token implements Serializable{
     
     String tipo;
     String valor;
