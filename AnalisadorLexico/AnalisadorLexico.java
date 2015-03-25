@@ -41,6 +41,9 @@ public class AnalisadorLexico {
         lexemas.put("=<", "<=");
         lexemas.put("==", "==");
         lexemas.put("!=", "!=");
+        lexemas.put("e", "and");
+        lexemas.put("ou", "or");
+        lexemas.put("não", "not");
         //Gerais
         lexemas.put("(", "(");
         lexemas.put(")", ")");
@@ -146,12 +149,14 @@ public class AnalisadorLexico {
                     }
 
                     //Tratamento de virgula e ponto para numeros
-                    else if (((c == ',' && !isFuncao.peek()) || c == '.') && isInt) {
+                    else if (((c == ',' && !isFuncao.peek()) 
+                              || c == '.')
+                             && isInt) {
                         isInt = false;
                         isFloat = true;
-                    }  
+                    }
 
-
+                    //
                     else if (Character.isLetter(c) && !isVar) {
                         isVar = true;
                         if (!isInt && !isFloat) {
@@ -170,6 +175,7 @@ public class AnalisadorLexico {
                         lista.add(new Token("int", linha.substring(lexBegin, i)));
                         isInt = false;
                     } else if(isFloat) {
+                        System.out.print("gera token float");
                         lista.add(new Token("float", linha.substring(lexBegin, i)));
                         isFloat = false;
                     }
@@ -223,6 +229,18 @@ public class AnalisadorLexico {
                             lista.add(new Token(res, ""));
                     }
                 }
+            }
+            
+            //caso a linha termine em um token
+            if(isVar){
+                lista.add(new Token("var", linha.substring(lexBegin)));
+                isVar = false;
+            } else if(isInt) {
+                lista.add(new Token("int", linha.substring(lexBegin)));
+                isInt = false;
+            } else if(isFloat) {
+                lista.add(new Token("float", linha.substring(lexBegin)));
+                isFloat = false;
             }
 
             //Identificacao de palavras chave
