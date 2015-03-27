@@ -26,11 +26,11 @@ public class AnalisadorLexico {
         lexemas.put("+", "+");
         lexemas.put("-", "-");
         lexemas.put("*", "*");
-        lexemas.put(" x ", "*");
+        lexemas.put("x", "*");
         lexemas.put("/", "/");
         lexemas.put(":", "/");
         lexemas.put(".", ".");
-        lexemas.put(",", ".");
+        lexemas.put(",", ",");
         //Comparativos
         lexemas.put(">", ">");
         lexemas.put(">=", ">=");
@@ -96,7 +96,10 @@ public class AnalisadorLexico {
                 isComment = false;
         int nlinha = 0;
         Stack<Boolean> isFuncao = new Stack<>();
-        isFuncao.push(new Boolean(false));
+        isFuncao.push(false);
+            
+        //Buffer de string multi-linha
+        String buffer = "";
 
         while (b.ready()) {
             
@@ -148,7 +151,8 @@ public class AnalisadorLexico {
                 else if (c == '"') {
                     //Caso seja string pode ir qualquer coisa dentro
                     if (isString) {
-                        lista.add(new Token("str", linha.substring(lexBegin, i)));
+                        lista.add(new Token("str", buffer + linha.substring(lexBegin, i)));
+                        buffer = "";
                     } else {
                         lexBegin = i + 1;
                     }
@@ -218,8 +222,8 @@ public class AnalisadorLexico {
                         lista.add(new Token(",", ""));
                     }
 
-                    //Chama a funcao recursivamente para analisar o conteudo
-                    //do parenteses
+                    //Usa uma pilha para para analisar o conteudo do parenteses
+                    //se e uma funcao ou se e apenas uma expressao
                     else if (c == '(') {
                         ArrayList<Token> l = new ArrayList<>();
                         //Caso esteja iniciando uma chamada de funcao
@@ -262,13 +266,18 @@ public class AnalisadorLexico {
                 }
             }
             
-            //caso a linha termine em um token
+            //Caso seja uma string multi-linha
+            if(isString){
+                buffer = linha.substring(lexBegin) + "\n";
+            }
+            
+            //Caso a linha termine em um token
             if(isVar){
                 Token t;
-                //caso seja palavra chave
+                //Caso seja palavra chave
                 if(lexemas.get(linha.substring(lexBegin)) != null)
                     t = new Token(lexemas.get(linha.substring(lexBegin)), "");
-                //caso seja variavel
+                //Caso seja variavel
                 else 
                     t = new Token("var", linha.substring(lexBegin));
                 lista.add(t);
