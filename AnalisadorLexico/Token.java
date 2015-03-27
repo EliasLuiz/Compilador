@@ -30,7 +30,7 @@ public class Token implements Serializable{
 
     @Override
     public String toString() {
-        if(valor != "")
+        if(!valor.isEmpty())
             return "<" + tipo + "," + valor + ">";
         else
             return "<" + tipo + ">";

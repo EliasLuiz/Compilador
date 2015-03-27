@@ -57,18 +57,18 @@ public class AnalisadorLexico {
         lexemas.put("vetor", "decl vetor");
         //Palavras-chave
         //Condicionais
-        lexemas.put("se", "cond");
-        lexemas.put("então", "initcond");
-        lexemas.put("senão", "altcond");
-        lexemas.put("fim-se", "endcond");
+        lexemas.put("se", "if");
+        lexemas.put("então", "then");
+        lexemas.put("senão", "else");
+        lexemas.put("fim-se", "endif");
         //Loops
-        lexemas.put("para", "forloop");
-        lexemas.put("de", "rng1forloop");
-        lexemas.put("até", "rng2forloop");
-        lexemas.put("faça", "initloop");
-        lexemas.put("fim-para", "endforloop");
-        lexemas.put("enquanto", "whileloop");
-        lexemas.put("fim-enquanto", "endwhileloop");
+        lexemas.put("para", "for");
+        lexemas.put("de", "from");
+        lexemas.put("até", "to");
+        lexemas.put("faça", "do");
+        lexemas.put("fim-para", "endfor");
+        lexemas.put("enquanto", "while");
+        lexemas.put("fim-enquanto", "endwhile");
         //#####################################################
 
     }
@@ -118,6 +118,25 @@ public class AnalisadorLexico {
                 //Identificacao de comentarios
                 if (c == '#') {
                     isComment = !isComment;
+                    //Se comecao um comentario logo apos uma variavel ou numero
+                    //gera o token pro numero
+                    if(isVar){
+                        Token t;
+                        //caso seja palavra chave
+                        if(lexemas.get(linha.substring(lexBegin, i)) != null)
+                            t = new Token(lexemas.get(linha.substring(lexBegin, i)), "");
+                        //caso seja variavel
+                        else 
+                            t = new Token("var", linha.substring(lexBegin, i));
+                        lista.add(t);
+                        isVar = false;
+                    } else if(isInt) {
+                        lista.add(new Token("int", linha.substring(lexBegin, i)));
+                        isInt = false;
+                    } else if(isFloat) {
+                        lista.add(new Token("float", linha.substring(lexBegin, i).replace(",", ".")));
+                        isFloat = false;
+                    }
                     continue;
                 }
                 //Remocao de comentarios
@@ -156,15 +175,17 @@ public class AnalisadorLexico {
                     }
 
                     //Detecta inicio de uma possivel variavel
-                    else if (Character.isLetter(c) || c == '-' || c == '_') {
+                    else if (Character.isLetter(c) || c == '_') {
                         if(!isVar){
                             isVar = true;
-                            if (!isInt && !isFloat) { //variavel que inicia em numero???????????????????
-                                lexBegin = i;
-                            } else {
+                            if (isInt) {
+                                lista.add(new Token("int", linha.substring(lexBegin, i)));
                                 isInt = false;
+                            } else if(isFloat) {
+                                lista.add(new Token("float", linha.substring(lexBegin, i).replace(",", ".")));
                                 isFloat = false;
                             }
+                            lexBegin = i;
                         }
                         else
                             continue;
@@ -172,18 +193,24 @@ public class AnalisadorLexico {
 
                     //Gerando tokens para quem estava ativo
                     else if(isVar){
-                        lista.add(new Token("var", linha.substring(lexBegin, i)));
+                        Token t;
+                        //caso seja palavra chave
+                        if(lexemas.get(linha.substring(lexBegin, i)) != null)
+                            t = new Token(lexemas.get(linha.substring(lexBegin, i)), "");
+                        //case seja variavel
+                        else 
+                            t = new Token("var", linha.substring(lexBegin, i));
+                        lista.add(t);
                         isVar = false;
                     } else if(isInt) {
                         lista.add(new Token("int", linha.substring(lexBegin, i)));
                         isInt = false;
                     } else if(isFloat) {
-                        System.out.print("gera token float");
                         lista.add(new Token("float", linha.substring(lexBegin, i).replace(",", ".")));
                         isFloat = false;
                     }
 
-
+                    //Separa os parametros de uma funcao
                     if (isFuncao.peek() && c == ',') {
                         isVar = false;
                         isFloat = false;
@@ -237,7 +264,14 @@ public class AnalisadorLexico {
             
             //caso a linha termine em um token
             if(isVar){
-                lista.add(new Token("var", linha.substring(lexBegin)));
+                Token t;
+                //caso seja palavra chave
+                if(lexemas.get(linha.substring(lexBegin)) != null)
+                    t = new Token(lexemas.get(linha.substring(lexBegin)), "");
+                //caso seja variavel
+                else 
+                    t = new Token("var", linha.substring(lexBegin));
+                lista.add(t);
                 isVar = false;
             } else if(isInt) {
                 lista.add(new Token("int", linha.substring(lexBegin)));
@@ -247,34 +281,43 @@ public class AnalisadorLexico {
                 isFloat = false;
             }
 
-            //Identificacao de palavras chave
-            for (ListIterator<Token> iter = lista.listIterator(); iter.hasNext(); ) {
-                Token t = iter.next();
-                if(t.tipo.equals("var") || t.tipo.equals("fun")){
-                    if(lexemas.get(t.valor) != null){
-                        t.tipo = lexemas.get(t.valor);
-                        t.valor = "";
+            //Identificacao de fim-<palavra-chave>
+            for(int i=0; i<lista.size(); i++){
+                if(i<lista.size()-1 && i>0){
+                    Token t = lista.get(i);
+                    if(t.tipo.equals(lexemas.get("-"))){
+                        Token ant = lista.get(i-1), prox = lista.get(i+1);
+                        if("fim".equals(ant.valor) && 
+                                (lexemas.get("se").equals(prox.tipo) ||
+                                lexemas.get("enquanto").equals(prox.tipo) ||
+                                lexemas.get("para").equals(prox.tipo))){
+                            t.tipo = "end" + prox.tipo;
+                            t.valor = "";
+                            lista.set(i, t);
+                            lista.remove(i+1);
+                            lista.remove(i-1);
+                        }
                     }
-                    iter.set(t);
                 }
             }
 
             //Se houverem tokens na linha adiciona no hashmap
             if (!lista.isEmpty()) {
                 tokens.put(nlinha, lista);
-                System.out.println("");
             }
 
             nlinha++;
 
             for(Token t : lista)
                 System.out.print(t + " ");
+            System.out.println("");
+            
         }
     }
 
-    public static void main(String[] args) throws IOException, ClassNotFoundException {
+    public static void main(String[] args) throws IOException {
         AnalisadorLexico a = new AnalisadorLexico();
         a.analisar("exemplo.txt");
-        a.salvar("tokens.txt");
+        //a.salvar("tokens.txt");
     }
 }
