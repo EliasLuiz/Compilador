@@ -94,6 +94,7 @@ public class AnalisadorLexico {
         //variaveis de controle de estado
         boolean isString = false, isInt = false, isFloat = false, isVar = false,
                 isComment = false;
+        int nlinha = 0;
         Stack<Boolean> isFuncao = new Stack<>();
         isFuncao.push(new Boolean(false));
 
@@ -105,7 +106,7 @@ public class AnalisadorLexico {
             char c;
             
             //variaveis auxiliares
-            int lexBegin = 0, nlinha = 0;
+            int lexBegin = 0;
             
             //lista para armazenar os tokens
             ArrayList<Token> lista = new ArrayList<>();
@@ -222,12 +223,12 @@ public class AnalisadorLexico {
                     else if (c == '(') {
                         ArrayList<Token> l = new ArrayList<>();
                         //Caso esteja iniciando uma chamada de funcao
-                        if (!lista.isEmpty() && lista.get(lista.size() - 1).tipo == "var") {
+                        if (!lista.isEmpty() && "var".equals(lista.get(lista.size() - 1).tipo)) {
                             lista.get(lista.size() - 1).tipo = lexemas.get("fun");
-                            isFuncao.push(new Boolean(true));
+                            isFuncao.push(true);
                         //Caso seja apenas uma expressao entre parenteses
                         } else {
-                            isFuncao.push(new Boolean(false));
+                            isFuncao.push(false);
                         }
                         lista.add(new Token(lexemas.get("("), ""));
                     }
@@ -310,12 +311,16 @@ public class AnalisadorLexico {
             
         }
         
+        //Caso queira imprimir os tokens no console
         if(print){
+            System.out.println("\n\nAnalise Lexica:");
             for(Map.Entry<Integer, ArrayList<Token>> entry: tokens.entrySet()){
+                System.out.print(entry.getKey() + "\t");
                 for(Token t : entry.getValue())
                     System.out.print(t + " ");
                 System.out.println("");
             }
+            System.out.println("\n\n");
         }
     }
 }
