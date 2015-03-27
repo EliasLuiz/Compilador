@@ -9,7 +9,7 @@ import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.ListIterator;
+import java.util.Map;
 import java.util.Stack;
 
 public class AnalisadorLexico {
@@ -54,7 +54,7 @@ public class AnalisadorLexico {
         lexemas.put("str", "str,");
         lexemas.put("var", "var");
         lexemas.put("fun", "fun");
-        lexemas.put("vetor", "decl vetor");
+        lexemas.put("vetor", "vet");
         //Palavras-chave
         //Condicionais
         lexemas.put("se", "if");
@@ -72,7 +72,6 @@ public class AnalisadorLexico {
         //#####################################################
 
     }
-
     private BufferedReader carregar(String path) throws IOException {
         BufferedReader reader;
         reader = new BufferedReader(new InputStreamReader(
@@ -88,7 +87,7 @@ public class AnalisadorLexico {
         fos.close();
     }
     
-    public void analisar(String path) throws IOException {
+    public void analisar(String path, boolean print) throws IOException {
         
         BufferedReader b = carregar(path);
             
@@ -308,16 +307,15 @@ public class AnalisadorLexico {
 
             nlinha++;
 
-            for(Token t : lista)
-                System.out.print(t + " ");
-            System.out.println("");
             
         }
-    }
-
-    public static void main(String[] args) throws IOException {
-        AnalisadorLexico a = new AnalisadorLexico();
-        a.analisar("exemplo.txt");
-        //a.salvar("tokens.txt");
+        
+        if(print){
+            for(Map.Entry<Integer, ArrayList<Token>> entry: tokens.entrySet()){
+                for(Token t : entry.getValue())
+                    System.out.print(t + " ");
+                System.out.println("");
+            }
+        }
     }
 }
