@@ -29,8 +29,6 @@ public class AnalisadorLexico {
         lexemas.put("x", "*");
         lexemas.put("/", "/");
         lexemas.put(":", "/");
-        lexemas.put(".", ".");
-        lexemas.put(",", ",");
         //Comparativos
         lexemas.put(">", ">");
         lexemas.put(">=", ">=");
@@ -49,6 +47,9 @@ public class AnalisadorLexico {
         lexemas.put("[", "[");
         lexemas.put("]", "]");
         lexemas.put("=", "=");
+        lexemas.put(".", ".");
+        lexemas.put(",", ",");
+        lexemas.put(";", "endinstr");
         lexemas.put("int", "int");
         lexemas.put("float", "float");
         lexemas.put("str", "str,");
@@ -94,7 +95,7 @@ public class AnalisadorLexico {
         //variaveis de controle de estado
         boolean isString = false, isInt = false, isFloat = false, isVar = false,
                 isComment = false;
-        int nlinha = 0;
+        int nlinha = 1;
         Stack<Boolean> isFuncao = new Stack<>();
         isFuncao.push(false);
             
@@ -180,8 +181,8 @@ public class AnalisadorLexico {
 
                     //Detecta inicio de uma possivel variavel
                     else if (Character.isLetter(c) || c == '_') {
+                        
                         if(!isVar){
-                            isVar = true;
                             if (isInt) {
                                 lista.add(new Token("int", linha.substring(lexBegin, i)));
                                 isInt = false;
@@ -189,11 +190,24 @@ public class AnalisadorLexico {
                                 lista.add(new Token("float", linha.substring(lexBegin, i).replace(",", ".")));
                                 isFloat = false;
                             }
+                        
+                            //Gambiarra para fazer o 5x5 funcionar
+                            if(c == 'x' && 
+                              ("int".equals(lista.get(lista.size()-1).tipo) || 
+                                  "float".equals(lista.get(lista.size()-1).tipo)) &&
+                              i < linha.length()-1 &&
+                              Character.isDigit(linha.charAt(i+1))){
+
+                                lista.add(new Token(lexemas.get("x"), ""));
+                                continue;
+                            }
+                            
+                            isVar = true;
                             lexBegin = i;
                         }
                         else
-                            continue;
-                    } 
+                            continue;        
+                    }
 
                     //Gerando tokens para quem estava ativo
                     else if(isVar){
@@ -221,6 +235,7 @@ public class AnalisadorLexico {
                         isInt = false;
                         lista.add(new Token(",", ""));
                     }
+                    
 
                     //Usa uma pilha para para analisar o conteudo do parenteses
                     //se e uma funcao ou se e apenas uma expressao
@@ -271,6 +286,7 @@ public class AnalisadorLexico {
                 buffer = linha.substring(lexBegin) + "\n";
             }
             
+            
             //Caso a linha termine em um token
             if(isVar){
                 Token t;
@@ -308,6 +324,12 @@ public class AnalisadorLexico {
                         }
                     }
                 }
+            }
+            
+            //Caso nao seja uma instrucao multi-linha
+            //adiciona token <endinstr> informando fim da instrucao
+            if(!isString && isFuncao.size()<=1){
+                lista.add(new Token(lexemas.get(";"), ""));
             }
 
             //Se houverem tokens na linha adiciona no hashmap
