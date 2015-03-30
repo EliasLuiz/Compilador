@@ -48,7 +48,7 @@ public class Alduin {
         
         AnalisadorLexico a = new AnalisadorLexico();
         
-        try { a.analisar(ipath, true); } 
+        try { a.analisar(ipath, print); } 
         catch (IOException ex) {
             System.err.println("Arquivo " + ipath + " nao pode ser aberto");
             Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
