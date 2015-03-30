@@ -8,7 +8,7 @@ import java.util.logging.Logger;
 public class Alduin {
     public static void main(String[] args){
         
-        String ipath = "teste.txt", //como fazer para multiplos arquivos?
+        String ipath = "exemplo2.txt", //como fazer para multiplos arquivos?
                opath = "exemplo.js";
         boolean print = false;
         

@@ -49,7 +49,7 @@ public class AnalisadorLexico {
         lexemas.put("=", "=");
         lexemas.put(".", ".");
         lexemas.put(",", ",");
-        lexemas.put(";", "endinstr");
+        lexemas.put("endinstr", "endinstr");
         lexemas.put("int", "int");
         lexemas.put("float", "float");
         lexemas.put("str", "str,");
@@ -193,6 +193,7 @@ public class AnalisadorLexico {
                         
                             //Gambiarra para fazer o 5x5 funcionar
                             if(c == 'x' && 
+                              lista.size() > 0 &&
                               ("int".equals(lista.get(lista.size()-1).tipo) || 
                                   "float".equals(lista.get(lista.size()-1).tipo)) &&
                               i < linha.length()-1 &&
@@ -329,7 +330,7 @@ public class AnalisadorLexico {
             //Caso nao seja uma instrucao multi-linha
             //adiciona token <endinstr> informando fim da instrucao
             if(!isString && isFuncao.size()<=1){
-                lista.add(new Token(lexemas.get(";"), ""));
+                lista.add(new Token(lexemas.get("endinstr"), ""));
             }
 
             //Se houverem tokens na linha adiciona no hashmap
