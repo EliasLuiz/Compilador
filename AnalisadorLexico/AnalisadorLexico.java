@@ -329,7 +329,7 @@ public class AnalisadorLexico {
             
             //Caso nao seja uma instrucao multi-linha
             //adiciona token <endinstr> informando fim da instrucao
-            if(!isString && isFuncao.size()<=1){
+            if(!isString && isFuncao.size()<=1 && !lista.isEmpty()){
                 lista.add(new Token(lexemas.get("endinstr"), ""));
             }
 

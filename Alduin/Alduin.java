@@ -9,7 +9,7 @@ public class Alduin {
     public static void main(String[] args){
         
         String ipath = "", //como fazer para multiplos arquivos?
-               opath = "exemplo.js";
+               opath = "";
         boolean print = false;
         
         try{
@@ -102,8 +102,8 @@ public class Alduin {
         
         AnalisadorLexico a = new AnalisadorLexico();
         
-        if(ipath != ""){
-            try { a.analisar(ipath, true); } 
+        if(!ipath.isEmpty()){
+            try { a.analisar(ipath, print); } 
             catch (IOException ex) {
                 System.err.println("Arquivo " + ipath + " nao pode ser aberto");
                 Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
