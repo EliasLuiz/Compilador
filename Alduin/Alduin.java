@@ -39,8 +39,8 @@ public class Alduin {
                         System.out.println("-help         --    imprime a ajuda do programa");
                         System.out.println("");
                         System.exit(0);
-                    case "-logo":
-                        System.out.println("" +
+                    case "-dovah":
+                        System.out.println("\n\n" +
 "                       .$          M.                       \n" +
 "                      .MD          M.                       \n" +
 "                     .MMM.       .MMM                       \n" +
@@ -90,7 +90,7 @@ public class Alduin {
 "                           MMMMM                            \n" +
 "                            MMM                             \n" +
 "                            ,MN                             \n" +
-"                             M                              ");
+"                             M                              \n\n");
                         break;
                     }
             }
