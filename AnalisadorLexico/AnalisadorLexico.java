@@ -219,24 +219,18 @@ public class AnalisadorLexico {
                         if(lexemas.get(linha.substring(lexBegin, i)) != null)
                             t = new Token(lexemas.get(linha.substring(lexBegin, i)), "");
                         //caso seja fim-estrutura
-                        else if("fim".equals(linha.substring(lexBegin, i)) &&
-                                '-' == linha.charAt(i) &&
-                                linha.length()-i>2 &&
-                                "se".equals(linha.substring(i+1, i+3))){
+                        else if(linha.length()-i>2 &&
+                                "fim-se".equals(linha.substring(lexBegin, i+3))){
                             i += 3;
                             continue;
                         }
-                        else if("fim".equals(linha.substring(lexBegin, i)) &&
-                                '-' == linha.charAt(i) &&
-                                linha.length()-i>4 &&
-                                "para".equals(linha.substring(i+1, i+5)) ){
+                        else if(linha.length()-i>4 &&
+                                "fim-para".equals(linha.substring(lexBegin, i+5))){
                             i += 5;
                             continue;
                         }
-                        else if("fim".equals(linha.substring(lexBegin, i)) &&
-                                '-' == linha.charAt(i) &&
-                                linha.length()-i>8 &&
-                                "enquanto".equals(linha.substring(i+1, i+9))){
+                        else if(linha.length()-i>8 &&
+                                "fim-enquanto".equals(linha.substring(lexBegin, i+9))){
                             i += 9;
                             continue;
                         }
