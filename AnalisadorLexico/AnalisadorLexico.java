@@ -120,7 +120,7 @@ public class AnalisadorLexico {
                 c = linha.charAt(i);
 
                 //Identificacao de comentarios
-                if (c == '#') {
+                if (c == '#' && !isString) {
                     isComment = !isComment;
                     //Se comecao um comentario logo apos uma variavel ou numero
                     //gera o token pro numero
@@ -195,9 +195,11 @@ public class AnalisadorLexico {
                             if(c == 'x' && 
                               lista.size() > 0 &&
                               ("int".equals(lista.get(lista.size()-1).tipo) || 
-                                  "float".equals(lista.get(lista.size()-1).tipo)) &&
+                                  "float".equals(lista.get(lista.size()-1).tipo) ||
+                                  ")".equals(lista.get(lista.size()-1).tipo) ) &&
                               i < linha.length()-1 &&
-                              Character.isDigit(linha.charAt(i+1))){
+                              (Character.isDigit(linha.charAt(i+1)) || '(' == 
+                                  linha.charAt(i+1))){
 
                                 lista.add(new Token(lexemas.get("x"), ""));
                                 continue;
@@ -216,8 +218,30 @@ public class AnalisadorLexico {
                         //caso seja palavra chave
                         if(lexemas.get(linha.substring(lexBegin, i)) != null)
                             t = new Token(lexemas.get(linha.substring(lexBegin, i)), "");
-                        //case seja variavel
-                        else 
+                        //caso seja fim-estrutura
+                        else if("fim".equals(linha.substring(lexBegin, i)) &&
+                                '-' == linha.charAt(i) &&
+                                linha.length()-i>2 &&
+                                "se".equals(linha.substring(i+1, i+3))){
+                            i += 3;
+                            continue;
+                        }
+                        else if("fim".equals(linha.substring(lexBegin, i)) &&
+                                '-' == linha.charAt(i) &&
+                                linha.length()-i>4 &&
+                                "para".equals(linha.substring(i+1, i+5)) ){
+                            i += 5;
+                            continue;
+                        }
+                        else if("fim".equals(linha.substring(lexBegin, i)) &&
+                                '-' == linha.charAt(i) &&
+                                linha.length()-i>8 &&
+                                "enquanto".equals(linha.substring(i+1, i+9))){
+                            i += 9;
+                            continue;
+                        }
+                        //caso seja variavel
+                        else
                             t = new Token("var", linha.substring(lexBegin, i));
                         lista.add(t);
                         isVar = false;
@@ -306,26 +330,7 @@ public class AnalisadorLexico {
                 lista.add(new Token("float", linha.substring(lexBegin).replace(",", ".")));
                 isFloat = false;
             }
-
-            //Identificacao de fim-<palavra-chave>
-            for(int i=0; i<lista.size(); i++){
-                if(i<lista.size()-1 && i>0){
-                    Token t = lista.get(i);
-                    if(t.tipo.equals(lexemas.get("-"))){
-                        Token ant = lista.get(i-1), prox = lista.get(i+1);
-                        if("fim".equals(ant.valor) && 
-                                (lexemas.get("se").equals(prox.tipo) ||
-                                lexemas.get("enquanto").equals(prox.tipo) ||
-                                lexemas.get("para").equals(prox.tipo))){
-                            t.tipo = "end" + prox.tipo;
-                            t.valor = "";
-                            lista.set(i, t);
-                            lista.remove(i+1);
-                            lista.remove(i-1);
-                        }
-                    }
-                }
-            }
+            
             
             //Caso nao seja uma instrucao multi-linha
             //adiciona token <endinstr> informando fim da instrucao
