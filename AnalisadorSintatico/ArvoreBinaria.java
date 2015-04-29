@@ -1,18 +1,16 @@
 package AnalisadorSintatico;
 
+import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.ListIterator;
 
 
-public class ArvoreBinaria<T> {
+public class ArvoreBinaria<T> implements Serializable{
     
     private ArvoreBinaria<T> esq, dir;
     private T nodo;
-    
-    public ArvoreBinaria(){
-        esq = null;
-        dir = null;
-        nodo = null;
-    }
     
     public ArvoreBinaria(T node){
         esq = null;
@@ -44,16 +42,6 @@ public class ArvoreBinaria<T> {
         this.dir = dir;
     }
     
-//    public void insereEsq(T x){
-//        esq = new ArvoreBinaria<>();
-//        esq.nodo = x;
-//    }
-//    
-//    public void insereDir(T x){
-//        dir = new ArvoreBinaria<>();
-//        dir.nodo = x;
-//    }
-    
     public ArrayList<T> inOrdem(){
         ArrayList<T> lista = new ArrayList<>();
         if(esq != null){
@@ -71,5 +59,68 @@ public class ArvoreBinaria<T> {
             }
         }
         return lista;
+    }
+    
+    @Override
+    public String toString(){
+        return nodo.toString();
+    }
+    
+    public void print(){
+        int alt = altura();
+        int esp = (int) (Math.pow(2, alt));
+        LinkedList<ArvoreBinaria<T>> fila;
+        for (int i = 0; i < alt; i++) {
+            fila = this.folhas(i);
+            for (int j = 0; j < esp/2; j++)
+                System.out.print("\t");
+            for(Iterator<ArvoreBinaria<T>> iterator = fila.iterator(); iterator.hasNext();) {
+                ArvoreBinaria<T> next = iterator.next();
+                if(next != null)
+                    System.out.print(next.toString());
+                for (int j = 0; j < esp; j++)
+                    System.out.print("\t");
+            }
+            esp = esp / 2;
+            System.out.println("");
+        }
+    }
+    protected LinkedList<ArvoreBinaria<T>> folhas(int altura){
+        LinkedList<ArvoreBinaria<T>> fila = new LinkedList<>();
+        if(altura == 0)
+            fila.add(this);
+        else{
+            LinkedList<ArvoreBinaria<T>> fAux;
+            
+            if(esq != null)
+                fAux = esq.folhas(altura-1);
+            else{
+                fAux = new LinkedList<>();
+                fAux.add(null);
+            }
+            for (ArvoreBinaria<T> fila1 : fAux) {
+                fila.add(fila1);
+            }
+            
+            if(dir != null)
+                fAux = dir.folhas(altura-1);
+            else{
+                fAux = new LinkedList<>();
+                fAux.add(null);
+            }
+            for (ArvoreBinaria<T> fila1 : fAux) {
+                fila.add(fila1);
+            }
+        }
+        return fila;
+    }
+    
+    public int altura(){
+        int hEsq = 0, hDir = 0;
+        if(esq != null)
+            hEsq = esq.altura();
+        if(dir != null)
+            hDir = dir.altura();
+        return 1 + (hEsq > hDir ? hEsq : hDir);
     }
 }

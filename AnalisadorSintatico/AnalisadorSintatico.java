@@ -14,6 +14,7 @@ public class AnalisadorSintatico {
         w.setDir(y);
         
         System.out.println(w.inOrdem().toString());
+        w.print();
     }
     
 }
