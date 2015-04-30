@@ -15,9 +15,9 @@ import java.util.Map;
 public class AnalisadorSintatico {
 
     /* VARIAVEIS */
-    protected LinkedHashMap<Integer, ArvoreBinaria<Token>> arvores;
-    protected LinkedHashMap<Integer, ArrayList<Token>> linhas;
-    protected HashMap<String, String> lexemas;
+    private LinkedHashMap<Integer, ArvoreBinaria<Token>> arvores;
+    private LinkedHashMap<Integer, ArrayList<Token>> linhas;
+    private HashMap<String, String> lexemas;
 
     
     
@@ -41,7 +41,7 @@ public class AnalisadorSintatico {
     
     
     /* IO */
-    protected void carregar(String path) throws IOException, ClassNotFoundException {
+    private void carregar(String path) throws IOException, ClassNotFoundException {
         FileInputStream fos = new FileInputStream(path);
         ObjectInputStream oos = new ObjectInputStream(fos);
         linhas = (LinkedHashMap<Integer, ArrayList<Token>>) oos.readObject();
@@ -62,13 +62,13 @@ public class AnalisadorSintatico {
     
     
     /* FUNCOES AUXILIARES */
-    protected int indexOf(ArrayList<Object> array, Object x){
+    private int indexOf(ArrayList<Object> array, Object x){
         for(int i = 0; i < array.size(); i++)
             if(array.get(i) == x)
                 return i;
         return -1;
     }
-    protected int indexOf(ArrayList<Object> array, Object x, int start, int end){
+    private int indexOf(ArrayList<Object> array, Object x, int start, int end){
         for(int i = start; i < end; i++)
             if(array.get(i) == x)
                 return i;
@@ -78,7 +78,7 @@ public class AnalisadorSintatico {
     
     
     /* IDENTIFICADORES DE GRAMATICA */
-    protected ArvoreBinaria<Token> termo(ArrayList<Token> linha, int start, int end) 
+    private ArvoreBinaria<Token> termo(ArrayList<Token> linha, int start, int end) 
             throws ErroSintatico{
         if("(".equals(linha.get(start).getTipo()) &&
            ")".equals(linha.get(end).getTipo()))
@@ -97,7 +97,7 @@ public class AnalisadorSintatico {
         else
             throw new ErroSintatico("Termo inválido");
     }
-    protected ArvoreBinaria<Token> funcao(ArrayList<Token> linha, int start, int end){
+    private ArvoreBinaria<Token> funcao(ArrayList<Token> linha, int start, int end){
         
     }
     

@@ -15,9 +15,9 @@ import java.util.Stack;
 public class AnalisadorLexico {
 
     /* VARIAVEIS */
-    protected LinkedHashMap<Integer, ArrayList<Token>> tokens;
-    protected HashMap<String, String> lexemas;
-    protected String path;
+    private LinkedHashMap<Integer, ArrayList<Token>> tokens;
+    private HashMap<String, String> lexemas;
+    private String path;
 
     
     
@@ -34,7 +34,7 @@ public class AnalisadorLexico {
     
     
     /* IO */
-    protected BufferedReader carregar(String path) throws IOException {
+    private BufferedReader carregar(String path) throws IOException {
         BufferedReader reader;
         reader = new BufferedReader(new InputStreamReader(
                 new FileInputStream(path), "Cp1252"));
@@ -204,6 +204,11 @@ public class AnalisadorLexico {
                         else if(linha.length()-i>8 &&
                                 lexemas.get("fim-enquanto").equals(linha.substring(lexBegin, i+9))){
                             i += 9;
+                            continue;
+                        }
+                        else if(linha.length()-i>6 &&
+                                lexemas.get("fim-funcao").equals(linha.substring(lexBegin, i+7))){
+                            i += 7;
                             continue;
                         }
                         //caso seja variavel
