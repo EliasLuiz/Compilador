@@ -4,7 +4,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.ListIterator;
 
 
 public class ArvoreBinaria<T> implements Serializable{
@@ -72,7 +71,7 @@ public class ArvoreBinaria<T> implements Serializable{
         LinkedList<ArvoreBinaria<T>> fila;
         for (int i = 0; i < alt; i++) {
             fila = this.folhas(i);
-            for (int j = 0; j < esp/2; j++)
+            for (int j = 0; j < esp/2-1; j++)
                 System.out.print("\t");
             for(Iterator<ArvoreBinaria<T>> iterator = fila.iterator(); iterator.hasNext();) {
                 ArvoreBinaria<T> next = iterator.next();
