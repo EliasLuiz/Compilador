@@ -1,6 +1,7 @@
 package Alduin;
 
 import AnalisadorLexico.AnalisadorLexico;
+import AnalisadorSintatico.AnalisadorSintatico;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -100,20 +101,19 @@ public class Alduin {
             System.exit(1);
         }
         
-        AnalisadorLexico a = new AnalisadorLexico();
+        AnalisadorLexico l = new AnalisadorLexico(ipath);
+        AnalisadorSintatico s;
         
         if(!ipath.isEmpty()){
-            try { a.analisar(ipath, print); } 
+            try { l.analisar(print); }
             catch (IOException ex) {
                 System.err.println("Arquivo " + ipath + " nao pode ser aberto");
                 Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
                 System.exit(1);
             }
-
-            try { a.salvar("tokens.tmp"); }
-            catch (IOException ex) {
-                Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
-                System.exit(1);
+            try{ s = new AnalisadorSintatico(l.getTokens()); }
+            catch (Exception e){
+                //TODO
             }
         }
     }

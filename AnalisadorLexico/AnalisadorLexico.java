@@ -14,22 +14,32 @@ import java.util.Stack;
 
 public class AnalisadorLexico {
 
-    private LinkedHashMap<Integer, ArrayList<Token>> tokens;
-    private HashMap<String, String> lexemas;
+    /* VARIAVEIS */
+    protected LinkedHashMap<Integer, ArrayList<Token>> tokens;
+    protected HashMap<String, String> lexemas;
+    protected String path;
 
-    public AnalisadorLexico() {
+    
+    
+    /* CONSTRUTOR */
+    public AnalisadorLexico(String path) {
         tokens = new LinkedHashMap<>();
         
         Lexemas lex = new Lexemas();
         lexemas = lex.getLexemas();
+        
+        this.path = path;
     }
-    private BufferedReader carregar(String path) throws IOException {
+    
+    
+    
+    /* IO */
+    protected BufferedReader carregar(String path) throws IOException {
         BufferedReader reader;
         reader = new BufferedReader(new InputStreamReader(
                 new FileInputStream(path), "Cp1252"));
         return reader;
     }
-
     public void salvar(String path) throws IOException {
         FileOutputStream fos = new FileOutputStream(path);
         ObjectOutputStream oos = new ObjectOutputStream(fos);
@@ -37,8 +47,14 @@ public class AnalisadorLexico {
         oos.close();
         fos.close();
     }
+    public LinkedHashMap<Integer, ArrayList<Token>> getTokens(){
+        return tokens;
+    }
     
-    public void analisar(String path, boolean print) throws IOException {
+    
+    
+    /* FUNCAO PRINCIPAL */
+    public void analisar(boolean print) throws IOException {
         
         BufferedReader b = carregar(path);
             

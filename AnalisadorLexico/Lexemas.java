@@ -48,6 +48,8 @@ public class Lexemas {
         lexemas.put("var", "var");
         lexemas.put("fun", "fun");
         lexemas.put("vetor", "vet");
+        lexemas.put("verdadeiro", "true");
+        lexemas.put("falso", "false");
         //Palavras-chave
         //Condicionais
         lexemas.put("se", "if");
