@@ -43,16 +43,17 @@ public class Lexemas {
         lexemas.put(",", ",");
         //Palavras-chave
         //Gerais
-        lexemas.put("endinstr", "endinstr");
+        lexemas.put(".endinstr", ".endinstr");
         lexemas.put("verdadeiro", "true");
         lexemas.put("falso", "false");
-        lexemas.put("funcao", "funinit");
-        lexemas.put("fim-funcao", "endfun");
+        lexemas.put("funcao", "def");
+        lexemas.put("fim-funcao", "enddef");
+        lexemas.put("fim", "end");
         //Tipos
         lexemas.put("int", "int");
         lexemas.put("float", "float");
-        lexemas.put("str", "str,");
-        lexemas.put("var", "var");
+        lexemas.put("str", "str");
+        lexemas.put("var", "id");
         lexemas.put("fun", "fun");
         lexemas.put("vetor", "vet");
         //Condicionais

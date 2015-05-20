@@ -1,6 +1,5 @@
 package AnalisadorSintatico;
 
-import AnalisadorLexico.Lexemas;
 import AnalisadorLexico.Token;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -8,34 +7,27 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class AnalisadorSintatico {
 
     /* VARIAVEIS */
     private LinkedHashMap<Integer, ArvoreBinaria<Token>> arvores;
     private LinkedHashMap<Integer, ArrayList<Token>> linhas;
-    private HashMap<String, String> lexemas;
+            
 
-    
     
     /* CONSTRUTORES */
     public AnalisadorSintatico(String path) throws IOException, ClassNotFoundException {
         arvores = new LinkedHashMap<>();
         carregar(path);
-        
-        Lexemas lex = new Lexemas();
-        lexemas = lex.getLexemas();
     }
     public AnalisadorSintatico(LinkedHashMap<Integer, ArrayList<Token>> tokens) 
             throws IOException, ClassNotFoundException {
         arvores = new LinkedHashMap<>();
         linhas = tokens;
-        
-        Lexemas lex = new Lexemas();
-        lexemas = lex.getLexemas();
     }
 
     
@@ -58,6 +50,9 @@ public class AnalisadorSintatico {
     public LinkedHashMap<Integer, ArvoreBinaria<Token>> getArvores(){
         return arvores;
     }
+    public LinkedHashMap<Integer, ArrayList<Token>> getTokens() {
+        return linhas;
+    }
     
     
     
@@ -77,29 +72,91 @@ public class AnalisadorSintatico {
     
     
     
-    /* IDENTIFICADORES DE GRAMATICA */
-    private ArvoreBinaria<Token> termo(ArrayList<Token> linha, int start, int end) 
+    /* ====================IDENTIFICADORES DE GRAMATICA==================== */
+    
+    /* ANALISE MACRO */
+    private void programa() throws ErroSintatico{
+        Integer[] keys = (Integer[]) linhas.keySet().toArray();
+        for (int i = keys.length-1; i >= 0; i++) {
+            if(linhas.get(keys[i]).contains(new Token("end", ""))){
+                if (linhas.get(keys[i]).size() > 1)
+                    throw new ErroSintatico("Linha " + keys[i] + ": \"fim\" deve estar"
+                            + "em uma linha a parte");
+                else if(i < keys.length-1)
+                    throw new ErroSintatico("Linha " + keys[i+1] + ": Instrucoes apos o "
+                            + "termino do programa");
+                else
+                    return;
+            }
+        }
+        throw new ErroSintatico("Fim do programa nao encontrado");
+    }
+    private void estruturaBlocos() throws ErroSintatico{
+        
+    }
+    
+    
+    
+    /* ANALISE MEDIA */
+    
+    
+    
+    /* ANALISE MICRO */
+    private ArvoreBinaria<Token> atribuicao(int linhaBegin, int linhaEnd)
+            throws ErroSintatico{
+        
+    }
+    private ArvoreBinaria<Token> condicao(ArrayList<Token> linha, int start, int end)
+            throws ErroSintatico{
+        
+    }
+    private ArvoreBinaria<Token> termo(ArrayList<Token> linha, int start, int end)
             throws ErroSintatico{
         if("(".equals(linha.get(start).getTipo()) &&
            ")".equals(linha.get(end).getTipo()))
             return condicao(linha, start+1, end-1);
-        else if(start == end && 
-                lexemas.get("var").equals(linha.get(start).getTipo()) ||
-                lexemas.get("float").equals(linha.get(start).getTipo()) ||
-                lexemas.get("int").equals(linha.get(start).getTipo()) ||
-                lexemas.get("verdadeiro").equals(linha.get(start).getTipo()) ||
-                lexemas.get("falso").equals(linha.get(start).getTipo()))
+        
+        else if(start == end &&
+                ("id".equals(linha.get(start).getTipo()) ||
+                "float".equals(linha.get(start).getTipo()) ||
+                "int".equals(linha.get(start).getTipo()) ||
+                "true".equals(linha.get(start).getTipo()) ||
+                "false".equals(linha.get(start).getTipo())))
             return new ArvoreBinaria<>(linha.get(start));
-        else if(lexemas.get("fun").equals(linha.get(start).getTipo()) &&
+        
+        else if("fun".equals(linha.get(start).getTipo()) &&
                 "(".equals(linha.get(start+1).getTipo()) &&
                 ")".equals(linha.get(end).getTipo()))
             return funcao(linha, start, end);
+        
         else
             throw new ErroSintatico("Termo inválido");
     }
-    private ArvoreBinaria<Token> funcao(ArrayList<Token> linha, int start, int end){
+    private ArvoreBinaria<Token> funcao(ArrayList<Token> linha, int start, int end) 
+            throws ErroSintatico{
+        if(!"fun".equals(linha.get(start).getTipo()) ||
+                !"(".equals(linha.get(start+1).getTipo()) ||
+                !")".equals(linha.get(end).getTipo()))
+            throw new ErroSintatico("Chamada a funcao mal formada");
         
+        boolean correto = true;
+        int i = start;
+        int virgula;
+        //Analise dos parametros
+        while(i != end){
+            virgula = indexOf(null, new Token(",", ""), i, end);
+            if(virgula != -1){
+                condicao(linha, i, virgula-1);
+                i = virgula + 1;
+            }
+            else{
+                condicao(linha, i, end);
+                i = end;
+            }
+        }
     }
+    
+    /* ==================================================================== */
     
     
     

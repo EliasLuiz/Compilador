@@ -313,7 +313,7 @@ public class AnalisadorLexico {
             //Caso nao seja uma instrucao multi-linha
             //adiciona token <endinstr> informando fim da instrucao
             if(!isString && isFuncao.size()<=1 && !lista.isEmpty()){
-                lista.add(new Token(lexemas.get("endinstr"), ""));
+                lista.add(new Token(lexemas.get(".endinstr"), ""));
             }
 
             //Se houverem tokens na linha adiciona no hashmap
