@@ -99,6 +99,8 @@ public class AnalisadorSintatico {
     private boolean estruturaBlocos(){
         return estruturaIf() || estruturaWhile() || estruturaFor() || estruturaDef();
     }
+    private boolean atrubuicoes(){
+    }
     private boolean estruturaIf(){
         Stack<Integer> pilha = new Stack<>();
         Integer[] keys = (Integer[]) linhas.keySet().toArray();
@@ -113,6 +115,11 @@ public class AnalisadorSintatico {
             
             //Se for um endif
             if(indexEndif != -1){
+                if(pilha.empty()){
+                    System.err.println("Linha " + nLinha + ": Todos os blocos "
+                            + "condicionais ja foram encerrados.");
+                    erro = true;
+                }
                 pilha.pop();
                 if(linha.size() != 1){
                     System.err.println("Linha " + nLinha + ": Palavra-chave \"fim-se\""
@@ -181,6 +188,11 @@ public class AnalisadorSintatico {
             
             //Se for um endwhile
             if(indexEndWhile != -1){
+                if(pilha.empty()){
+                    System.err.println("Linha " + nLinha + ": Todos os blocos "
+                            + "enquanto ja foram encerrados.");
+                    erro = true;
+                }
                 pilha.pop();
                 if(linha.size() != 1){
                     System.err.println("Linha " + nLinha + ": Palavra-chave \"fim-enquanto\""
@@ -224,10 +236,159 @@ public class AnalisadorSintatico {
         }
         return erro;
     }
-    
-    /* ANALISE MEDIA */
-    
-    
+    private boolean estruturaFor(){
+        Stack<Integer> pilha = new Stack<>();
+        Integer[] keys = (Integer[]) linhas.keySet().toArray();
+        boolean erro = false;
+        
+        //Itera pelas linhas de codigo
+        for (Integer nLinha : keys) {
+            ArrayList<Token> linha = linhas.get(nLinha);
+            int indexFor = indexOf(linha, new Token("for", ""));
+            int indexEndFor = indexOf(linha, new Token("endfor", ""));
+            
+            //Se for um endfor
+            if(indexEndFor != -1){
+                if(pilha.empty()){
+                    System.err.println("Linha " + nLinha + ": Todos os blocos "
+                            + "para ja foram encerrados.");
+                    erro = true;
+                }
+                pilha.pop();
+                if(linha.size() != 1){
+                    System.err.println("Linha " + nLinha + ": Palavra-chave \"fim-para\""
+                            + "deve estar sozinha na linha.");
+                    erro = true;
+                }
+            }
+            
+            //Se for um for
+            else if(indexFor != -1){
+                pilha.push(nLinha);
+                int indexFrom = indexOf(linha, new Token("from", ""));
+                int indexTo = indexOf(linha, new Token("to", ""));
+                int indexDo = indexOf(linha, new Token("do", ""));
+                if (indexFor > 0) {
+                    System.err.println("Linha " + nLinha + ": Token antes da " 
+                            + "palavra-chave \"para\".");
+                    erro = true;
+                }
+                if (indexFrom == -1) {
+                    System.err.println("Linha " + nLinha + ": Ausencia de " 
+                            + "\"de\" apos palavra-chave \"para\".");
+                    erro = true;
+                }
+                if (indexTo == -1) {
+                    System.err.println("Linha " + nLinha + ": Ausencia de " 
+                            + "\"ate\" apos palavra-chave \"de\".");
+                    erro = true;
+                }
+                if (indexDo == -1) {
+                    System.err.println("Linha " + nLinha + ": Ausencia de " 
+                            + "\"faca\" apos palavra-chave \"ate\".");
+                    erro = true;
+                }
+                if (indexDo + 1 < linha.size()) {
+                    System.err.println("Linha " + nLinha + ": Token apos a " 
+                            + "palavra-chave \"faca\".");
+                    erro = true;
+                }
+                if(!"id".equals(linha.get(indexFor+1).getTipo())){
+                    System.err.println("Linha " + nLinha + ": Identificador a ser "
+                            + "iterado deve ser uma variavel.");
+                    erro = true;
+                }
+                if(!"int".equals(linha.get(indexFrom+1).getTipo()) &&
+                   !"float".equals(linha.get(indexFrom+1).getTipo())){
+                    System.err.println("Linha " + nLinha + ": Valor inicial deve ser "
+                            + "numerico.");
+                    erro = true;
+                }
+                if(!"int".equals(linha.get(indexTo+1).getTipo()) &&
+                   !"float".equals(linha.get(indexTo+1).getTipo())){
+                    System.err.println("Linha " + nLinha + ": Valor final deve ser "
+                            + "numerico.");
+                    erro = true;
+                }
+                if(indexFrom != -1 &&
+                   indexFrom - indexFor > 2){
+                    System.err.println("Linha " + nLinha + ": Quantidade excessiva "
+                            + "de identificadores a serem iterados.");
+                    erro = true;
+                }
+                if(indexTo != -1 &&
+                   indexTo - indexFrom > 2){
+                    System.err.println("Linha " + nLinha + ": Quantidade excessiva "
+                            + "de valores iniciais.");
+                    erro = true;
+                }
+                if(indexDo != -1 &&
+                   indexDo - indexTo > 2){
+                    System.err.println("Linha " + nLinha + ": Quantidade excessiva "
+                            + "de valores finais.");
+                    erro = true;
+                }
+            }
+        }
+        //Se houver for nao encerrado
+        while(!pilha.empty()){
+            Integer nLinha = pilha.pop();
+            System.err.println("Linha " + nLinha + ": Estrutura de repeticao"
+                    + "nao encerrada.");
+            erro = true;
+        }
+        return erro;
+    }
+    private boolean estruturaDef(){
+        Stack<Integer> pilha = new Stack<>();
+        Integer[] keys = (Integer[]) linhas.keySet().toArray();
+        boolean erro = false;
+        
+        //Itera pelas linhas de codigo
+        for (Integer nLinha : keys) {
+            ArrayList<Token> linha = linhas.get(nLinha);
+            int indexDef = indexOf(linha, new Token("def", ""));
+            int indexEndDef = indexOf(linha, new Token("enddef", ""));
+            
+            //Se for um enddef
+            if(indexEndDef != -1){
+                if(pilha.empty()){
+                    System.err.println("Linha " + nLinha + ": Todas as definicoes "
+                            + "de funcoes ja foram encerrados.");
+                    erro = true;
+                }
+                pilha.pop();
+                if(linha.size() != 1){
+                    System.err.println("Linha " + nLinha + ": Palavra-chave \"fim-funcao\""
+                            + "deve estar sozinha na linha.");
+                    erro = true;
+                }
+            }
+            
+            //Se for um def
+            else if(indexDef != -1){
+                pilha.push(nLinha);
+                if (indexDef > 0) {
+                    System.err.println("Linha " + nLinha + ": Token antes da " 
+                            + "palavra-chave \"funcao\".");
+                    erro = true;
+                }
+                try { funcao(linha, indexDef+1, linha.size()-1); }
+                catch (ErroSintatico e) { 
+                    System.err.println("Linha " + nLinha + ": " + e.erro + ".");
+                    erro = true; 
+                }
+            }
+        }
+        //Se houver def nao encerrado
+        while(!pilha.empty()){
+            Integer nLinha = pilha.pop();
+            System.err.println("Linha " + nLinha + ": Definicao de funcao"
+                    + "nao encerrada.");
+            erro = true;
+        }
+        return erro;
+    }
     
     /* ANALISE MICRO */
     private ArvoreBinaria<Token> atribuicao(int linhaBegin, int linhaEnd)
