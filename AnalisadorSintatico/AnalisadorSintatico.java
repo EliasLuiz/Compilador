@@ -81,10 +81,10 @@ public class AnalisadorSintatico {
             if(linhas.get(keys[i]).contains(new Token("end", ""))){
                 if (linhas.get(keys[i]).size() > 1)
                     System.err.println("Linha " + keys[i] + ": \"fim\" deve estar"
-                            + "em uma linha a parte");
+                            + "em uma linha a parte.");
                 if(i < keys.length-1)
                     System.err.println("Linha " + keys[i+1] + ": Instrucoes apos o "
-                            + "termino do programa");
+                            + "termino do programa.");
                 //Se nao ocorreu nenhum erro
                 else
                     return false;
@@ -92,7 +92,7 @@ public class AnalisadorSintatico {
                 return true;
             }
         }
-        System.err.println("Linha 1: Fim do programa nao encontrado");
+        System.err.println("Linha 1: Fim do programa nao encontrado.");
         //Se ocorreu erro
         return true;
     }
@@ -116,7 +116,7 @@ public class AnalisadorSintatico {
                 pilha.pop();
                 if(linha.size() != 1){
                     System.err.println("Linha " + nLinha + ": Palavra-chave \"fim-se\""
-                            + "deve estar sozinha na linha");
+                            + "deve estar sozinha na linha.");
                     erro = true;
                 }
             }
@@ -126,23 +126,23 @@ public class AnalisadorSintatico {
                 pilha.push(nLinha);
                 if (indexIf > 0) {
                     System.err.println("Linha " + nLinha + ": Token antes da " 
-                            + "palavra-chave \"se\"");
+                            + "palavra-chave \"se\".");
                     erro = true;
                 }
                 int indexThen = indexOf(linha, new Token("then", ""));
                 if (indexThen == -1) {
                     System.err.println("Linha " + nLinha + ": Ausencia de " 
-                            + "\"entao\" apos palavra-chave \"se\"");
+                            + "\"entao\" apos palavra-chave \"se\".");
                     erro = true;
                 }
                 if (indexThen + 1 < linha.size()) {
                     System.err.println("Linha " + nLinha + ": Token apos a " 
-                            + "palavra-chave \"entao\"");
+                            + "palavra-chave \"entao\".");
                     erro = true;
                 }
                 try { condicao(linha, indexIf+1, indexThen-1); }
                 catch (ErroSintatico e) { 
-                    System.err.println("Linha " + nLinha + ": " + e.erro);
+                    System.err.println("Linha " + nLinha + ": " + e.erro + ".");
                     erro = true; 
                 }
             }
@@ -154,14 +154,76 @@ public class AnalisadorSintatico {
                 pilha.push(nLinha);
                 if (linha.size() != 1) {
                     System.err.println("Linha " + nLinha + ": Palavra-chave \"senao\""
-                            + "deve estar sozinha na linha");
+                            + "deve estar sozinha na linha.");
                     erro = true;
                 }
             }
         }
+        //Se houver if nao encerrado
+        while(!pilha.empty()){
+            Integer nLinha = pilha.pop();
+            System.err.println("Linha " + nLinha + ": Bloco condicional"
+                    + "nao encerrado.");
+            erro = true;
+        }
         return erro;
     }
-    
+    private boolean estruturaWhile(){
+        Stack<Integer> pilha = new Stack<>();
+        Integer[] keys = (Integer[]) linhas.keySet().toArray();
+        boolean erro = false;
+        
+        //Itera pelas linhas de codigo
+        for (Integer nLinha : keys) {
+            ArrayList<Token> linha = linhas.get(nLinha);
+            int indexWhile = indexOf(linha, new Token("while", ""));
+            int indexEndWhile = indexOf(linha, new Token("endwhile", ""));
+            
+            //Se for um endwhile
+            if(indexEndWhile != -1){
+                pilha.pop();
+                if(linha.size() != 1){
+                    System.err.println("Linha " + nLinha + ": Palavra-chave \"fim-enquanto\""
+                            + "deve estar sozinha na linha.");
+                    erro = true;
+                }
+            }
+            
+            //Se for um while
+            else if(indexWhile != -1){
+                pilha.push(nLinha);
+                if (indexWhile > 0) {
+                    System.err.println("Linha " + nLinha + ": Token antes da " 
+                            + "palavra-chave \"enquanto\".");
+                    erro = true;
+                }
+                int indexDo = indexOf(linha, new Token("do", ""));
+                if (indexDo == -1) {
+                    System.err.println("Linha " + nLinha + ": Ausencia de " 
+                            + "\"entao\" apos palavra-chave \"faca\".");
+                    erro = true;
+                }
+                if (indexDo + 1 < linha.size()) {
+                    System.err.println("Linha " + nLinha + ": Token apos a " 
+                            + "palavra-chave \"faca\".");
+                    erro = true;
+                }
+                try { condicao(linha, indexWhile+1, indexDo-1); }
+                catch (ErroSintatico e) { 
+                    System.err.println("Linha " + nLinha + ": " + e.erro + ".");
+                    erro = true; 
+                }
+            }
+        }
+        //Se houver while nao encerrado
+        while(!pilha.empty()){
+            Integer nLinha = pilha.pop();
+            System.err.println("Linha " + nLinha + ": Estrutura de repeticao"
+                    + "nao encerrada.");
+            erro = true;
+        }
+        return erro;
+    }
     
     /* ANALISE MEDIA */
     
@@ -196,7 +258,7 @@ public class AnalisadorSintatico {
             return funcao(linha, start, end);
         
         else
-            throw new ErroSintatico("Termo inválido");
+            throw new ErroSintatico("Termo invalido");
     }
     private ArvoreBinaria<Token> funcao(ArrayList<Token> linha, int start, int end) 
             throws ErroSintatico{
