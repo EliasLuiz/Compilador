@@ -9,23 +9,23 @@ import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Set;
+import java.util.Stack;
 
 public class AnalisadorSintatico {
 
     /* VARIAVEIS */
     private LinkedHashMap<Integer, ArvoreBinaria<Token>> arvores;
     private LinkedHashMap<Integer, ArrayList<Token>> linhas;
-            
 
-    
+
+
     /* CONSTRUTORES */
-    public AnalisadorSintatico(String path) throws IOException, ClassNotFoundException {
+    public AnalisadorSintatico(String path) 
+            throws IOException, ClassNotFoundException {
         arvores = new LinkedHashMap<>();
         carregar(path);
     }
-    public AnalisadorSintatico(LinkedHashMap<Integer, ArrayList<Token>> tokens) 
-            throws IOException, ClassNotFoundException {
+    public AnalisadorSintatico(LinkedHashMap<Integer, ArrayList<Token>> tokens){
         arvores = new LinkedHashMap<>();
         linhas = tokens;
     }
@@ -57,13 +57,13 @@ public class AnalisadorSintatico {
     
     
     /* FUNCOES AUXILIARES */
-    private int indexOf(ArrayList<Object> array, Object x){
+    private int indexOf(ArrayList array, Object x){
         for(int i = 0; i < array.size(); i++)
             if(array.get(i) == x)
                 return i;
         return -1;
     }
-    private int indexOf(ArrayList<Object> array, Object x, int start, int end){
+    private int indexOf(ArrayList array, Object x, int start, int end){
         for(int i = start; i < end; i++)
             if(array.get(i) == x)
                 return i;
@@ -75,26 +75,92 @@ public class AnalisadorSintatico {
     /* ====================IDENTIFICADORES DE GRAMATICA==================== */
     
     /* ANALISE MACRO */
-    private void programa() throws ErroSintatico{
+    private boolean programa() throws ErroSintatico{
         Integer[] keys = (Integer[]) linhas.keySet().toArray();
         for (int i = keys.length-1; i >= 0; i++) {
             if(linhas.get(keys[i]).contains(new Token("end", ""))){
                 if (linhas.get(keys[i]).size() > 1)
-                    throw new ErroSintatico("Linha " + keys[i] + ": \"fim\" deve estar"
+                    System.err.println("Linha " + keys[i] + ": \"fim\" deve estar"
                             + "em uma linha a parte");
-                else if(i < keys.length-1)
-                    throw new ErroSintatico("Linha " + keys[i+1] + ": Instrucoes apos o "
+                if(i < keys.length-1)
+                    System.err.println("Linha " + keys[i+1] + ": Instrucoes apos o "
                             + "termino do programa");
+                //Se nao ocorreu nenhum erro
                 else
-                    return;
+                    return false;
+                //Se ocorreu erro
+                return true;
             }
         }
-        throw new ErroSintatico("Fim do programa nao encontrado");
+        System.err.println("Linha 1: Fim do programa nao encontrado");
+        //Se ocorreu erro
+        return true;
     }
-    private void estruturaBlocos() throws ErroSintatico{
+    private boolean estruturaBlocos(){
+        return estruturaIf() || estruturaWhile() || estruturaFor() || estruturaDef();
+    }
+    private boolean estruturaIf(){
+        Stack<Integer> pilha = new Stack<>();
+        Integer[] keys = (Integer[]) linhas.keySet().toArray();
+        boolean erro = false;
         
+        //Itera pelas linhas de codigo
+        for (Integer nLinha : keys) {
+            ArrayList<Token> linha = linhas.get(nLinha);
+            int indexIf = indexOf(linha, new Token("if", ""));
+            int indexElse = indexOf(linha, new Token("else", ""));
+            int indexEndif = indexOf(linha, new Token("endif", ""));
+            
+            //Se for um endif
+            if(indexEndif != -1){
+                pilha.pop();
+                if(linha.size() != 1){
+                    System.err.println("Linha " + nLinha + ": Palavra-chave \"fim-se\""
+                            + "deve estar sozinha na linha");
+                    erro = true;
+                }
+            }
+            
+            //Se for um if
+            else if(indexIf != -1){
+                pilha.push(nLinha);
+                if (indexIf > 0) {
+                    System.err.println("Linha " + nLinha + ": Token antes da " 
+                            + "palavra-chave \"se\"");
+                    erro = true;
+                }
+                int indexThen = indexOf(linha, new Token("then", ""));
+                if (indexThen == -1) {
+                    System.err.println("Linha " + nLinha + ": Ausencia de " 
+                            + "\"entao\" apos palavra-chave \"se\"");
+                    erro = true;
+                }
+                if (indexThen + 1 < linha.size()) {
+                    System.err.println("Linha " + nLinha + ": Token apos a " 
+                            + "palavra-chave \"entao\"");
+                    erro = true;
+                }
+                try { condicao(linha, indexIf+1, indexThen-1); }
+                catch (ErroSintatico e) { 
+                    System.err.println("Linha " + nLinha + ": " + e.erro);
+                    erro = true; 
+                }
+            }
+            
+            //Se for um else
+            else if(indexElse != -1){
+                //Pilha passa a armazenar linha do else
+                pilha.pop();
+                pilha.push(nLinha);
+                if (linha.size() != 1) {
+                    System.err.println("Linha " + nLinha + ": Palavra-chave \"senao\""
+                            + "deve estar sozinha na linha");
+                    erro = true;
+                }
+            }
+        }
+        return erro;
     }
-    
     
     
     /* ANALISE MEDIA */
@@ -161,7 +227,7 @@ public class AnalisadorSintatico {
     
     
     /* FUNCAO PRINCIPAL */
-    public void analisar(boolean print){
+    public boolean analisar(boolean print){
         
         /* Analise do codigo linha a linha */
         
