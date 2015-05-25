@@ -75,31 +75,31 @@ public class AnalisadorSintatico {
     /* ====================IDENTIFICADORES DE GRAMATICA==================== */
     
     /* ANALISE MACRO */
-    private boolean programa() throws ErroSintatico{
+    private boolean programa(){
         Integer[] keys = (Integer[]) linhas.keySet().toArray();
+        boolean erro = false;
         for (int i = keys.length-1; i >= 0; i++) {
             if(linhas.get(keys[i]).contains(new Token("end", ""))){
-                if (linhas.get(keys[i]).size() > 1)
+                if (linhas.get(keys[i]).size() > 2){
                     System.err.println("Linha " + keys[i] + ": \"fim\" deve estar"
                             + "em uma linha a parte.");
-                if(i < keys.length-1)
+                    erro = true;
+                }
+                if(i < keys.length-1){
                     System.err.println("Linha " + keys[i+1] + ": Instrucoes apos o "
                             + "termino do programa.");
-                //Se nao ocorreu nenhum erro
-                else
-                    return false;
-                //Se ocorreu erro
-                return true;
+                    erro = true;
+                }
+                return erro;
             }
         }
         System.err.println("Linha 1: Fim do programa nao encontrado.");
-        //Se ocorreu erro
         return true;
     }
     private boolean estruturaBlocos(){
-        return estruturaIf() || estruturaWhile() || estruturaFor() || estruturaDef();
+        return estruturaIf() | estruturaWhile() | estruturaFor() | estruturaDef();
     }
-    private boolean atrubuicoes(){
+    private boolean atribuicoes(){
     }
     private boolean estruturaIf(){
         Stack<Integer> pilha = new Stack<>();
@@ -121,7 +121,7 @@ public class AnalisadorSintatico {
                     erro = true;
                 }
                 pilha.pop();
-                if(linha.size() != 1){
+                if(linha.size() != 2){
                     System.err.println("Linha " + nLinha + ": Palavra-chave \"fim-se\""
                             + "deve estar sozinha na linha.");
                     erro = true;
@@ -142,7 +142,7 @@ public class AnalisadorSintatico {
                             + "\"entao\" apos palavra-chave \"se\".");
                     erro = true;
                 }
-                if (indexThen + 1 < linha.size()) {
+                if (indexThen + 1 < linha.size()-1) {
                     System.err.println("Linha " + nLinha + ": Token apos a " 
                             + "palavra-chave \"entao\".");
                     erro = true;
@@ -159,7 +159,7 @@ public class AnalisadorSintatico {
                 //Pilha passa a armazenar linha do else
                 pilha.pop();
                 pilha.push(nLinha);
-                if (linha.size() != 1) {
+                if (linha.size() != 2) {
                     System.err.println("Linha " + nLinha + ": Palavra-chave \"senao\""
                             + "deve estar sozinha na linha.");
                     erro = true;
@@ -194,7 +194,7 @@ public class AnalisadorSintatico {
                     erro = true;
                 }
                 pilha.pop();
-                if(linha.size() != 1){
+                if(linha.size() != 2){
                     System.err.println("Linha " + nLinha + ": Palavra-chave \"fim-enquanto\""
                             + "deve estar sozinha na linha.");
                     erro = true;
@@ -215,7 +215,7 @@ public class AnalisadorSintatico {
                             + "\"entao\" apos palavra-chave \"faca\".");
                     erro = true;
                 }
-                if (indexDo + 1 < linha.size()) {
+                if (indexDo + 1 < linha.size()-1) {
                     System.err.println("Linha " + nLinha + ": Token apos a " 
                             + "palavra-chave \"faca\".");
                     erro = true;
@@ -255,7 +255,7 @@ public class AnalisadorSintatico {
                     erro = true;
                 }
                 pilha.pop();
-                if(linha.size() != 1){
+                if(linha.size() != 2){
                     System.err.println("Linha " + nLinha + ": Palavra-chave \"fim-para\""
                             + "deve estar sozinha na linha.");
                     erro = true;
@@ -288,7 +288,7 @@ public class AnalisadorSintatico {
                             + "\"faca\" apos palavra-chave \"ate\".");
                     erro = true;
                 }
-                if (indexDo + 1 < linha.size()) {
+                if (indexDo + 1 < linha.size()-1) {
                     System.err.println("Linha " + nLinha + ": Token apos a " 
                             + "palavra-chave \"faca\".");
                     erro = true;
@@ -358,7 +358,7 @@ public class AnalisadorSintatico {
                     erro = true;
                 }
                 pilha.pop();
-                if(linha.size() != 1){
+                if(linha.size() != 2){
                     System.err.println("Linha " + nLinha + ": Palavra-chave \"fim-funcao\""
                             + "deve estar sozinha na linha.");
                     erro = true;
@@ -391,7 +391,7 @@ public class AnalisadorSintatico {
     }
     
     /* ANALISE MICRO */
-    private ArvoreBinaria<Token> atribuicao(int linhaBegin, int linhaEnd)
+    private ArvoreBinaria<Token> atribuicao(ArrayList<Token> linha, int linhaBegin, int linhaEnd)
             throws ErroSintatico{
         
     }
@@ -451,8 +451,12 @@ public class AnalisadorSintatico {
     
     /* FUNCAO PRINCIPAL */
     public boolean analisar(boolean print){
+        boolean erro = false;
         
-        /* Analise do codigo linha a linha */
+        /* Analise de blocos do codigo */
+        erro |= programa();
+        erro |= estruturaBlocos();
+        erro |= atribuicoes();
         
         if(print){
             System.out.println("\n\nAnalise Sintatica:");
@@ -463,5 +467,7 @@ public class AnalisadorSintatico {
             }
             System.out.println("\n\n");
         }
+        
+        return erro;
     }
 }
