@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Stack;
@@ -445,6 +447,7 @@ public class AnalisadorSintatico {
                 i = end;
             }
         }
+        return ????
     }
 
     /* ==================================================================== */
@@ -461,10 +464,21 @@ public class AnalisadorSintatico {
         erro |= estruturaBlocos();
         erro |= atribuicoes();
 
-        if (print) {
+        //Imprime os erros da execucao
+        if(erro){
+            //Ordena os erros pela linha em que ocorreram
+            Collections.sort(erros);
+            
+            for(ErroSintatico e: erros){
+                System.err.println("Linha " + e.linha + ": " + e.erro);
+            }
+        }
+        //Se fez analise sintatica corretamente, mostra as arvores
+        //    sintaticas resultantes
+        else if (print) {
             System.out.println("\n\nAnalise Sintatica:");
             for (Map.Entry<Integer, ArvoreBinaria<Token>> entry : arvores.entrySet()) {
-                System.out.println(entry.getKey());
+                System.out.print(entry.getKey());
                 entry.getValue().print();
                 System.out.println("\n");
             }

@@ -1,6 +1,6 @@
 package AnalisadorSintatico;
 
-public class ErroSintatico extends Exception{
+public class ErroSintatico extends Exception implements Comparable<ErroSintatico>{
     public int linha;
     public String erro;
 
@@ -10,5 +10,11 @@ public class ErroSintatico extends Exception{
     public ErroSintatico(int l, String e) {
         linha = l;
         erro = e;
+    }
+    
+    @Override
+    //Ordena os erros pelo numero da linha em que ocorreram
+    public int compareTo(ErroSintatico e){
+        return new Integer(linha).compareTo(e.linha);
     }
 }
