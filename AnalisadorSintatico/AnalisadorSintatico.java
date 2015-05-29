@@ -560,6 +560,60 @@ public class AnalisadorSintatico {
     private ArvoreBinaria<Token> expressao(ArrayList<Token> linha, int start, int end) 
             throws ErroSintatico {
         
+        //Armazena os indices das aparicoes dos tokens na linha
+        Integer[] indexOperadores = new Integer[8];
+        indexOperadores[0] = rIndexOf(linha, new Token("+", ""), start, end);
+        indexOperadores[1] = rIndexOf(linha, new Token("-", ""), start, end);
+        
+        //Descobre qual comparativo esta mais a direita
+        int maior = -1;
+        int op = 0;
+        for(int j = 0; j < 8; j++){
+            if(indexOperadores[j] > maior){
+                maior = indexOperadores[j];
+                op = j;
+            }
+        }
+        
+        //Caso seja apenas uma expressao
+        if(maior == -1)
+            return expressaoPrec(linha, start, end);
+        
+        //Geracao da arvore sintatica
+        ArvoreBinaria<Token> arvore = new ArvoreBinaria<>(linha.get(op));
+        arvore.setDir(expressao(linha, start, op-1));
+        arvore.setEsq(expressaoPrec(linha, op+1, end));
+        
+        return arvore;
+    }
+    private ArvoreBinaria<Token> expressaoPrec(ArrayList<Token> linha, int start, int end) 
+            throws ErroSintatico{
+        
+        //Armazena os indices das aparicoes dos tokens na linha
+        Integer[] indexOperadores = new Integer[8];
+        indexOperadores[0] = rIndexOf(linha, new Token("*", ""), start, end);
+        indexOperadores[1] = rIndexOf(linha, new Token("/", ""), start, end);
+        
+        //Descobre qual comparativo esta mais a direita
+        int maior = -1;
+        int op = 0;
+        for(int j = 0; j < 8; j++){
+            if(indexOperadores[j] > maior){
+                maior = indexOperadores[j];
+                op = j;
+            }
+        }
+        
+        //Caso seja apenas uma expressao
+        if(maior == -1)
+            return expressaoPrec(linha, start, end);
+        
+        //Geracao da arvore sintatica
+        ArvoreBinaria<Token> arvore = new ArvoreBinaria<>(linha.get(op));
+        arvore.setDir(termo(linha, start, op-1));
+        arvore.setEsq(expressaoPrec(linha, op+1, end));
+        
+        return arvore;
     }
     private ArvoreBinaria<Token> termo(ArrayList<Token> linha, int start, int end)
             throws ErroSintatico {
