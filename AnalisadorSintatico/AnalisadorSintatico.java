@@ -79,6 +79,16 @@ public class AnalisadorSintatico {
         }
         return -1;
     }
+    private int rIndexOf(ArrayList array, Object x, int start, int end) {
+        //Procura o elemento mais a direita
+        //  usada devido ao fato de a gramatica derivar a esquerda
+        for (int i = end-1; i >= start; i--) {
+            if (array.get(i) == x) {
+                return i;
+            }
+        }
+        return -1;
+    }
 
     
     
@@ -121,12 +131,23 @@ public class AnalisadorSintatico {
             int indexAtrib = indexOf(linha, new Token("=", ""));
             
             if(indexAtrib != -1){
-                try {
-                    arvores.put(nLinha, condicao(linha, 0, linha.size()-1));
-                } catch (ErroSintatico e) {
-                    e.linha = nLinha;
-                    erros.add(e);
+                if(indexAtrib != 1 ||
+                   !"id".equals(linha.get(0).getTipo())){
+                    erros.add(new ErroSintatico(nLinha, "Atribuicoes deve ser a uma"
+                            + "variavel"));
                     erro = true;
+                }
+                else{
+                    try {
+                        ArvoreBinaria<Token> arvore = new ArvoreBinaria<>(new Token("=", ""));
+                        arvore.setEsq(new ArvoreBinaria<>(linha.get(0)));
+                        arvore.setDir(condicao(linha, 0, linha.size()-1));
+                        arvores.put(nLinha, arvore);
+                    } catch (ErroSintatico e) {
+                        e.linha = nLinha;
+                        erros.add(e);
+                        erro = true;
+                    }
                 }
             }
         }
@@ -503,7 +524,42 @@ public class AnalisadorSintatico {
     }
     private ArvoreBinaria<Token> condicao(ArrayList<Token> linha, int start, int end)
             throws ErroSintatico {
-
+        
+        //Armazena os indices das aparicoes dos tokens na linha
+        Integer[] indexComparativos = new Integer[8];
+        indexComparativos[0] = rIndexOf(linha, new Token("and", ""), start, end);
+        indexComparativos[1] = rIndexOf(linha, new Token("or", ""), start, end);
+        indexComparativos[2] = rIndexOf(linha, new Token("==", ""), start, end);
+        indexComparativos[3] = rIndexOf(linha, new Token("!=", ""), start, end);
+        indexComparativos[4] = rIndexOf(linha, new Token("<", ""), start, end);
+        indexComparativos[5] = rIndexOf(linha, new Token("<=", ""), start, end);
+        indexComparativos[6] = rIndexOf(linha, new Token(">", ""), start, end);
+        indexComparativos[7] = rIndexOf(linha, new Token(">=", ""), start, end);
+        
+        //Descobre qual comparativo esta mais a direita
+        int maior = -1;
+        int op = 0;
+        for(int j = 0; j < 8; j++){
+            if(indexComparativos[j] > maior){
+                maior = indexComparativos[j];
+                op = j;
+            }
+        }
+        
+        //Caso seja apenas uma expressao
+        if(maior == -1)
+            return expressao(linha, start, end);
+        
+        //Geracao da arvore sintatica
+        ArvoreBinaria<Token> arvore = new ArvoreBinaria<>(linha.get(op));
+        arvore.setDir(condicao(linha, start, op-1));
+        arvore.setEsq(expressao(linha, op+1, end));
+        
+        return arvore;
+    }
+    private ArvoreBinaria<Token> expressao(ArrayList<Token> linha, int start, int end) 
+            throws ErroSintatico {
+        
     }
     private ArvoreBinaria<Token> termo(ArrayList<Token> linha, int start, int end)
             throws ErroSintatico {
