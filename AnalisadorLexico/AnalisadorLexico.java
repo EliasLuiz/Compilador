@@ -322,7 +322,6 @@ public class AnalisadorLexico {
             }
 
             nlinha++;
-
             
         }
         

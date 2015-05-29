@@ -13,6 +13,11 @@ public class ErroSintatico extends Exception implements Comparable<ErroSintatico
     }
     
     @Override
+    public String toString(){
+        return "Linha " + linha + ": " + erro;
+    }
+    
+    @Override
     //Ordena os erros pelo numero da linha em que ocorreram
     public int compareTo(ErroSintatico e){
         return new Integer(linha).compareTo(e.linha);

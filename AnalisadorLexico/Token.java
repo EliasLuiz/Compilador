@@ -36,6 +36,10 @@ public class Token implements Serializable{
             return "<" + tipo + ">";
     }
     
-    
+    @Override
+    public boolean equals(Object obj){
+        Token t = (Token) obj;
+        return tipo.equals(t.getTipo()) && valor.equals(t.getValor());
+    }
     
 }

@@ -8,10 +8,11 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Stack;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class AnalisadorSintatico {
 
@@ -86,8 +87,9 @@ public class AnalisadorSintatico {
     /* ANALISE MACRO */
     private boolean programa() {
         Integer[] keys = (Integer[]) linhas.keySet().toArray();
+        
         boolean erro = false;
-        for (int i = keys.length - 1; i >= 0; i++) {
+        for (int i = 0; i < keys.length; i++) {
             if (linhas.get(keys[i]).contains(new Token("end", ""))) {
                 if (linhas.get(keys[i]).size() > 2) {
                     erros.add(new ErroSintatico(keys[i], "\"fim\" deve estar"
@@ -102,13 +104,106 @@ public class AnalisadorSintatico {
                 return erro;
             }
         }
-        erros.add(new ErroSintatico(0, "Fim do programa nao encontrado."));
+        erros.add(new ErroSintatico(1, "Fim do programa nao encontrado."));
         return true;
     }
     private boolean estruturaBlocos() {
         return estruturaIf() | estruturaWhile() | estruturaFor() | estruturaDef();
     }
     private boolean atribuicoes() {
+        
+        boolean erro = false;
+        
+        for (Map.Entry<Integer, ArrayList<Token>> entrySet : linhas.entrySet()) {
+            
+            Integer nLinha = entrySet.getKey();
+            ArrayList<Token> linha = entrySet.getValue();
+            int indexAtrib = indexOf(linha, new Token("=", ""));
+            
+            if(indexAtrib != -1){
+                try {
+                    arvores.put(nLinha, condicao(linha, 0, linha.size()-1));
+                } catch (ErroSintatico e) {
+                    e.linha = nLinha;
+                    erros.add(e);
+                    erro = true;
+                }
+            }
+        }
+        return erro;
+    }
+    private boolean declVetor(){   
+        
+        boolean erro = false;
+        
+        for (Map.Entry<Integer, ArrayList<Token>> entrySet : linhas.entrySet()) {
+            Integer nLinha = entrySet.getKey();
+            ArrayList<Token> linha = entrySet.getValue();
+            
+            int indexVet = indexOf(linha, new Token("vet", ""));
+            
+            if(indexVet != -1){
+                
+                if(indexVet > 0){
+                    erros.add(new ErroSintatico(nLinha, "Token antes da palavra chave "
+                            + "\"vetor\"."));
+                    erro = true;
+                }
+                if(indexVet == linha.size()-2){
+                    erros.add(new ErroSintatico(nLinha, "Vetor a ser declarado nao "
+                            + "especificado."));
+                    erro = true;
+                }
+                //Caso vetor tenha sido especificado
+                else {
+                    if(!"id".equals(linha.get(indexVet + 1).getTipo())){
+                        erros.add(new ErroSintatico(nLinha, "Vetor deve possuir um nome de "
+                                + "variavel valido."));
+                        erro = true;
+                    }
+                    if(indexVet + 6 > linha.size()){
+                        erros.add(new ErroSintatico(nLinha, "Tamanho do vetor nao "
+                                + "especificado."));
+                        erro = true;
+                    }
+                    //Vetor 1 ou 2 dimensoes
+                    if(indexVet + 6 >= linha.size()){
+                        if(!"[".equals(linha.get(indexVet + 2).getTipo()) ||
+                           !"]".equals(linha.get(indexVet + 4).getTipo())){
+                            erros.add(new ErroSintatico(nLinha, "Tamanho do vetor nao "
+                                    + "especificado corretamente."));
+                            erro = true;
+                        }
+                        if(!"int".equals(linha.get(indexVet + 3).getTipo())){
+                            erros.add(new ErroSintatico(nLinha, "Tamanho do vetor deve"
+                                    + "ser inteiro."));
+                            erro = true;
+                        }
+                    }
+                    //Vetor 2 dimensoes
+                    if(indexVet + 9 == linha.size()){
+                       if(!"[".equals(linha.get(indexVet + 5).getTipo()) ||
+                          !"]".equals(linha.get(indexVet + 7).getTipo())){
+                            erros.add(new ErroSintatico(nLinha, "Tamanho do vetor nao "
+                                    + "especificado."));
+                            erro = true;
+                        }
+                        
+                        if(!"int".equals(linha.get(indexVet + 3).getTipo())){
+                            erros.add(new ErroSintatico(nLinha, "Tamanho do vetor deve"
+                                    + "ser inteiro."));
+                            erro = true;
+                        }
+                    }
+                    else if (indexVet + 9 < linha.size()) {
+                        erros.add(new ErroSintatico(nLinha, "Nao deve haver tokens "
+                                + "apos a declaracao de um vetor."));
+                        erro = true;
+                    }
+                }
+            }
+        }
+        return erro;
     }
     private boolean estruturaIf() {
         Stack<Integer> pilha = new Stack<>();
@@ -116,8 +211,10 @@ public class AnalisadorSintatico {
         boolean erro = false;
 
         //Itera pelas linhas de codigo
-        for (Integer nLinha : keys) {
-            ArrayList<Token> linha = linhas.get(nLinha);
+        for (Map.Entry<Integer, ArrayList<Token>> entrySet : linhas.entrySet()) {
+            Integer nLinha = entrySet.getKey();
+            ArrayList<Token> linha = entrySet.getValue();
+            
             int indexIf = indexOf(linha, new Token("if", ""));
             int indexElse = indexOf(linha, new Token("else", ""));
             int indexEndif = indexOf(linha, new Token("endif", ""));
@@ -184,12 +281,13 @@ public class AnalisadorSintatico {
     }
     private boolean estruturaWhile() {
         Stack<Integer> pilha = new Stack<>();
-        Integer[] keys = (Integer[]) linhas.keySet().toArray();
         boolean erro = false;
 
         //Itera pelas linhas de codigo
-        for (Integer nLinha : keys) {
-            ArrayList<Token> linha = linhas.get(nLinha);
+        for (Map.Entry<Integer, ArrayList<Token>> entrySet : linhas.entrySet()) {
+            Integer nLinha = entrySet.getKey();
+            ArrayList<Token> linha = entrySet.getValue();
+            
             int indexWhile = indexOf(linha, new Token("while", ""));
             int indexEndWhile = indexOf(linha, new Token("endwhile", ""));
 
@@ -197,7 +295,7 @@ public class AnalisadorSintatico {
             if (indexEndWhile != -1) {
                 if (pilha.empty()) {
                     erros.add(new ErroSintatico(nLinha, "Todos os blocos "
-                            + "enquanto ja foram encerrados."));
+                            + "\"enquanto\" ja foram encerrados."));
                     erro = true;
                 }
                 pilha.pop();
@@ -245,12 +343,13 @@ public class AnalisadorSintatico {
     }
     private boolean estruturaFor() {
         Stack<Integer> pilha = new Stack<>();
-        Integer[] keys = (Integer[]) linhas.keySet().toArray();
         boolean erro = false;
 
         //Itera pelas linhas de codigo
-        for (Integer nLinha : keys) {
-            ArrayList<Token> linha = linhas.get(nLinha);
+        for (Map.Entry<Integer, ArrayList<Token>> entrySet : linhas.entrySet()) {
+            Integer nLinha = entrySet.getKey();
+            ArrayList<Token> linha = entrySet.getValue();
+            
             int indexFor = indexOf(linha, new Token("for", ""));
             int indexEndFor = indexOf(linha, new Token("endfor", ""));
 
@@ -258,7 +357,7 @@ public class AnalisadorSintatico {
             if (indexEndFor != -1) {
                 if (pilha.empty()) {
                     erros.add(new ErroSintatico(nLinha, "Todos os blocos "
-                            + "para ja foram encerrados."));
+                            + "\"para\" ja foram encerrados."));
                     erro = true;
                 }
                 pilha.pop();
@@ -346,12 +445,13 @@ public class AnalisadorSintatico {
     }
     private boolean estruturaDef() {
         Stack<Integer> pilha = new Stack<>();
-        Integer[] keys = (Integer[]) linhas.keySet().toArray();
         boolean erro = false;
 
         //Itera pelas linhas de codigo
-        for (Integer nLinha : keys) {
-            ArrayList<Token> linha = linhas.get(nLinha);
+        for (Map.Entry<Integer, ArrayList<Token>> entrySet : linhas.entrySet()) {
+            Integer nLinha = entrySet.getKey();
+            ArrayList<Token> linha = entrySet.getValue();
+            
             int indexDef = indexOf(linha, new Token("def", ""));
             int indexEndDef = indexOf(linha, new Token("enddef", ""));
 
@@ -394,12 +494,12 @@ public class AnalisadorSintatico {
         }
         return erro;
     }
-
+    
     
     /* ANALISE MICRO */
-    private ArvoreBinaria<Token> atribuicao(ArrayList<Token> linha, int linhaBegin, int linhaEnd)
+    private ArvoreBinaria<Token> atribuicao(ArrayList<Token> linha)
             throws ErroSintatico {
-
+        
     }
     private ArvoreBinaria<Token> condicao(ArrayList<Token> linha, int start, int end)
             throws ErroSintatico {
@@ -463,6 +563,7 @@ public class AnalisadorSintatico {
         erro |= programa();
         erro |= estruturaBlocos();
         erro |= atribuicoes();
+        erro |= declVetor();
 
         //Imprime os erros da execucao
         if(erro){
@@ -470,7 +571,7 @@ public class AnalisadorSintatico {
             Collections.sort(erros);
             
             for(ErroSintatico e: erros){
-                System.err.println("Linha " + e.linha + ": " + e.erro);
+                System.err.println(e.toString());
             }
         }
         //Se fez analise sintatica corretamente, mostra as arvores
