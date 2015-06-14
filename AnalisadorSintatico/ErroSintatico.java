@@ -6,6 +6,7 @@ public class ErroSintatico extends Exception implements Comparable<ErroSintatico
 
     public ErroSintatico(String e) {
         erro = e;
+        linha = -1;
     }
     public ErroSintatico(int l, String e) {
         linha = l;

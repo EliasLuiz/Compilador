@@ -158,7 +158,173 @@ public class AnalisadorSintatico {
         return true;
     }
     private boolean estruturaBlocos() {
-        return estruturaIf() | estruturaWhile() | estruturaFor() | estruturaDef();
+        Stack<ErroSintatico> pilha = new Stack<>();
+        //Pilha de erro sintatico para armazenar a linha de inicio
+        //    e o tipo do bloco (int, String) (Sim, eh uma gambiarra para
+        //    nao criar outra classe so para isso)
+        boolean erro = false;
+
+        //Itera pelas linhas de codigo
+        for (Map.Entry<Integer, ArrayList<Token>> entrySet : linhas.entrySet()) {
+            Integer nLinha = entrySet.getKey();
+            ArrayList<Token> linha = entrySet.getValue();
+            
+            
+            /* =========== BLOCO CONDICIONAL =========== */
+            int indexIf = indexOf(linha, new Token("if", ""));
+            //Se for um if
+            if (indexIf != -1){
+                erro |= estruturaIf(nLinha, linha);
+                pilha.push(new ErroSintatico(nLinha, "se"));
+            }
+            int indexElse = indexOf(linha, new Token("else", ""));
+            //Se for um else
+            if (indexElse != -1) {
+                //Pilha passa a armazenar linha do else
+                if(!"se".equals(pilha.peek().linha)){
+                    erros.add(new ErroSintatico(nLinha, "\"senao\" sem \"se\" +"
+                            + "correspondente."));
+                    erro = true;
+                }
+                else{
+                    pilha.pop();
+                    pilha.push(new ErroSintatico(nLinha, "senao"));
+                }
+                if (linha.size() != 2) {
+                    erros.add(new ErroSintatico(nLinha, "Palavra-chave \"senao\""
+                            + "deve estar sozinha na linha."));
+                    erro = true;
+                }
+            }
+            int indexEndif = indexOf(linha, new Token("endif", ""));
+            //Se for um endif
+            if (indexEndif != -1) {
+                if (pilha.empty()) {
+                    erros.add(new ErroSintatico(nLinha, "Todos os blocos "
+                            + "condicionais ja foram encerrados."));
+                    erro = true;
+                }
+                else if(!"se".equals(pilha.peek().linha)
+                     && !"senao".equals(pilha.peek().linha)){
+                    erros.add(new ErroSintatico(nLinha, "\"fim-se\" sem \"se\" "
+                            + "ou \"senao\" correspondente."));
+                    erro = true;
+                }
+                else{
+                    pilha.pop();
+                }
+                if (linha.size() != 2) {
+                    erros.add(new ErroSintatico(nLinha, "Palavra-chave \"fim-se\""
+                            + "deve estar sozinha na linha."));
+                    erro = true;
+                }
+            }
+            /* =========== FIM BLOCO CONDICIONAL =========== */
+            
+            /* =========== BLOCO ENQUANTO =========== */
+            int indexWhile = indexOf(linha, new Token("while", ""));
+            //Se for um while
+            if (indexWhile != -1){
+                erro |= estruturaWhile(nLinha, linha);
+                pilha.push(new ErroSintatico(nLinha, "enquanto"));
+            }
+            int indexEndWhile = indexOf(linha, new Token("endwhile", ""));
+            //Se for um endwhile
+            if (indexEndWhile != -1) {
+                if (pilha.empty()) {
+                    erros.add(new ErroSintatico(nLinha, "Todos os blocos "
+                            + "\"enquanto\" ja foram encerrados."));
+                    erro = true;
+                }
+                else if(!"enquanto".equals(pilha.peek().linha)){
+                    erros.add(new ErroSintatico(nLinha, "\"fim-enquanto\" sem "
+                            + "\"enquanto\" correspondente."));
+                    erro = true;
+                }
+                else{
+                    pilha.pop();
+                }
+                if (linha.size() != 2) {
+                    erros.add(new ErroSintatico(nLinha, "Palavra-chave \"fim-enquanto\""
+                            + "deve estar sozinha na linha."));
+                    erro = true;
+                }
+            }
+            /* =========== FIM BLOCO ENQUANTO =========== */
+        
+            /* =========== BLOCO PARA =========== */
+            int indexFor = indexOf(linha, new Token("for", ""));
+            //Se for um for
+            if (indexFor != -1){
+                erro |= estruturaFor(nLinha, linha);
+                pilha.push(new ErroSintatico(nLinha, "para"));
+            }
+            int indexEndFor = indexOf(linha, new Token("endfor", ""));
+            //Se for um endfor
+            if (indexEndFor != -1) {
+                if (pilha.empty()) {
+                    erros.add(new ErroSintatico(nLinha, "Todos os blocos "
+                            + "\"para\" ja foram encerrados."));
+                    erro = true;
+                }
+                else if(!"para".equals(pilha.peek().linha)){
+                    erros.add(new ErroSintatico(nLinha, "\"fim-para\" sem "
+                            + "\"para\" correspondente."));
+                    erro = true;
+                }
+                else{
+                    pilha.pop();
+                }
+                if (linha.size() != 2) {
+                    erros.add(new ErroSintatico(nLinha, "Palavra-chave \"fim-para\""
+                            + "deve estar sozinha na linha."));
+                    erro = true;
+                }
+            }
+            /* =========== FIM BLOCO PARA =========== */
+        
+            /* =========== BLOCO DEF =========== */
+            int indexDef = indexOf(linha, new Token("def", ""));
+            //Se for um def
+            if (indexDef != -1){
+                erro |= estruturaDef(nLinha, linha);
+                pilha.push(new ErroSintatico(nLinha, "funcao"));
+            }
+            int indexEndDef = indexOf(linha, new Token("enddef", ""));
+            //Se for um enddef
+            if (indexEndDef != -1) {
+                if (pilha.empty()) {
+                    erros.add(new ErroSintatico(nLinha, "Todos as definicoes "
+                            + "de funcoes ja foram encerrados."));
+                    erro = true;
+                }
+                else if(!"funcao".equals(pilha.peek().linha)){
+                    erros.add(new ErroSintatico(nLinha, "\"fim-funcao\" sem "
+                            + "\"funcao\" correspondente."));
+                    erro = true;
+                }
+                else{
+                    pilha.pop();
+                }
+                if (linha.size() != 2) {
+                    erros.add(new ErroSintatico(nLinha, "Palavra-chave \"fim-funcao\""
+                            + "deve estar sozinha na linha."));
+                    erro = true;
+                }
+            }
+            /* =========== FIM BLOCO DEF =========== */
+            
+        }
+        
+        //Se houver bloco nao encerrado
+        while (!pilha.empty()) {
+            ErroSintatico e = pilha.pop();
+            
+            erros.add(new ErroSintatico(e.linha, "Bloco \"" + e.erro
+                    + "\" nao encerrado."));
+            erro = true;
+        }
+        return erro;
     }
     private boolean atribuicoes() {
         
@@ -269,296 +435,164 @@ public class AnalisadorSintatico {
         }
         return erro;
     }
-    private boolean estruturaIf() {
-        Stack<Integer> pilha = new Stack<>();
+    
+    
+    /* ANALISE MEDIA */
+    private boolean estruturaIf(int nLinha,  ArrayList<Token> linha) {
         boolean erro = false;
 
-        //Itera pelas linhas de codigo
-        for (Map.Entry<Integer, ArrayList<Token>> entrySet : linhas.entrySet()) {
-            Integer nLinha = entrySet.getKey();
-            ArrayList<Token> linha = entrySet.getValue();
-            
-            int indexIf = indexOf(linha, new Token("if", ""));
-            int indexElse = indexOf(linha, new Token("else", ""));
-            int indexEndif = indexOf(linha, new Token("endif", ""));
+        int indexIf = indexOf(linha, new Token("if", ""));
 
-            //Se for um endif
-            if (indexEndif != -1) {
-                if (pilha.empty()) {
-                    erros.add(new ErroSintatico(nLinha, "Todos os blocos "
-                            + "condicionais ja foram encerrados."));
-                    erro = true;
-                }
-                pilha.pop();
-                if (linha.size() != 2) {
-                    erros.add(new ErroSintatico(nLinha, "Palavra-chave \"fim-se\""
-                            + "deve estar sozinha na linha."));
-                    erro = true;
-                }
-            } //Se for um if
-            else if (indexIf != -1) {
-                pilha.push(nLinha);
-                if (indexIf > 0) {
-                    erros.add(new ErroSintatico(nLinha, "Token antes da "
-                            + "palavra-chave \"se\"."));
-                    erro = true;
-                }
-                int indexThen = indexOf(linha, new Token("then", ""));
-                if (indexThen == -1) {
-                    erros.add(new ErroSintatico(nLinha, "Ausencia de "
-                            + "\"entao\" apos palavra-chave \"se\"."));
-                    erro = true;
-                }
-                if (indexThen + 1 < linha.size() - 1) {
-                    erros.add(new ErroSintatico(nLinha, "Token apos a "
-                            + "palavra-chave \"entao\"."));
-                    erro = true;
-                }
-                try {
-                    condicao(linha, indexIf + 1, indexThen - 1);
-                } catch (ErroSintatico e) {
-                    e.linha = nLinha;
-                    erros.add(e);
-                    erro = true;
-                }
-            } //Se for um else
-            else if (indexElse != -1) {
-                //Pilha passa a armazenar linha do else
-                pilha.pop();
-                pilha.push(nLinha);
-                if (linha.size() != 2) {
-                    erros.add(new ErroSintatico(nLinha, "Palavra-chave \"senao\""
-                            + "deve estar sozinha na linha."));
-                    erro = true;
-                }
-            }
-        }
-        //Se houver if nao encerrado
-        while (!pilha.empty()) {
-            Integer nLinha = pilha.pop();
-            erros.add(new ErroSintatico(nLinha, "Bloco condicional "
-                    + "nao encerrado."));
+        if (indexIf > 0) {
+            erros.add(new ErroSintatico(nLinha, "Token antes da "
+                    + "palavra-chave \"se\"."));
             erro = true;
+        }
+        int indexThen = indexOf(linha, new Token("then", ""));
+        if (indexThen == -1) {
+            erros.add(new ErroSintatico(nLinha, "Ausencia de "
+                    + "\"entao\" apos palavra-chave \"se\"."));
+            erro = true;
+        }
+        if (indexThen + 1 < linha.size() - 1) {
+            erros.add(new ErroSintatico(nLinha, "Token apos a "
+                    + "palavra-chave \"entao\"."));
+            erro = true;
+        }
+        try {
+            condicao(linha, indexIf + 1, indexThen - 1);
+        } catch (ErroSintatico e) {
+            e.linha = nLinha;
+            erros.add(e);
+            erro = true;
+        }
+        
+        return erro;
+    }
+    private boolean estruturaWhile(int nLinha, ArrayList<Token> linha) {
+        boolean erro = false;
+        
+        int indexWhile = indexOf(linha, new Token("while", "")); //Se for um while
+
+        if (indexWhile > 0) {
+            erros.add(new ErroSintatico(nLinha, "Token antes da "
+                    + "palavra-chave \"enquanto\"."));
+            erro = true;
+        }
+        
+        int indexDo = indexOf(linha, new Token("do", ""));
+        if (indexDo == -1) {
+            erros.add(new ErroSintatico(nLinha, "Ausencia de "
+                    + "\"entao\" apos palavra-chave \"faca\"."));
+            erro = true;
+        }
+        else{
+            if (indexDo + 1 < linha.size() - 1) {
+                erros.add(new ErroSintatico(nLinha, "Token apos a "
+                        + "palavra-chave \"faca\"."));
+                erro = true;
+            }
+            try {
+                condicao(linha, indexWhile + 1, indexDo - 1);
+            } catch (ErroSintatico e) {
+                e.linha = nLinha;
+                erros.add(e);
+                erro = true;
+            }
         }
         return erro;
     }
-    private boolean estruturaWhile() {
-        Stack<Integer> pilha = new Stack<>();
+    private boolean estruturaFor(int nLinha, ArrayList<Token> linha) {
         boolean erro = false;
-
-        //Itera pelas linhas de codigo
-        for (Map.Entry<Integer, ArrayList<Token>> entrySet : linhas.entrySet()) {
-            Integer nLinha = entrySet.getKey();
-            ArrayList<Token> linha = entrySet.getValue();
             
-            int indexWhile = indexOf(linha, new Token("while", ""));
-            int indexEndWhile = indexOf(linha, new Token("endwhile", ""));
-
-            //Se for um endwhile
-            if (indexEndWhile != -1) {
-                if (pilha.empty()) {
-                    erros.add(new ErroSintatico(nLinha, "Todos os blocos "
-                            + "\"enquanto\" ja foram encerrados."));
-                    erro = true;
-                }
-                pilha.pop();
-                if (linha.size() != 2) {
-                    erros.add(new ErroSintatico(nLinha, "Palavra-chave \"fim-enquanto\""
-                            + "deve estar sozinha na linha."));
-                    erro = true;
-                }
-            } //Se for um while
-            else if (indexWhile != -1) {
-                pilha.push(nLinha);
-                if (indexWhile > 0) {
-                    erros.add(new ErroSintatico(nLinha, "Token antes da "
-                            + "palavra-chave \"enquanto\"."));
-                    erro = true;
-                }
-                int indexDo = indexOf(linha, new Token("do", ""));
-                if (indexDo == -1) {
-                    erros.add(new ErroSintatico(nLinha, "Ausencia de "
-                            + "\"entao\" apos palavra-chave \"faca\"."));
-                    erro = true;
-                }
-                else{
-                    if (indexDo + 1 < linha.size() - 1) {
-                        erros.add(new ErroSintatico(nLinha, "Token apos a "
-                                + "palavra-chave \"faca\"."));
-                        erro = true;
-                    }
-                    try {
-                        condicao(linha, indexWhile + 1, indexDo - 1);
-                    } catch (ErroSintatico e) {
-                        e.linha = nLinha;
-                        erros.add(e);
-                        erro = true;
-                    }
-                }
-            }
-        }
-        //Se houver while nao encerrado
-        while (!pilha.empty()) {
-            Integer nLinha = pilha.pop();
-            erros.add(new ErroSintatico(nLinha, "Estrutura de repeticao "
-                    + "nao encerrada."));
+        int indexFor = indexOf(linha, new Token("for", ""));
+        int indexFrom = indexOf(linha, new Token("from", ""));
+        int indexTo = indexOf(linha, new Token("to", ""));
+        int indexDo = indexOf(linha, new Token("do", ""));
+        
+        if (indexFor > 0) {
+            erros.add(new ErroSintatico(nLinha, "Token antes da "
+                    + "palavra-chave \"para\"."));
             erro = true;
         }
+        if (indexFrom == -1) {
+            erros.add(new ErroSintatico(nLinha, "Ausencia de "
+                    + "\"de\" apos palavra-chave \"para\"."));
+            erro = true;
+        }
+        if (indexTo == -1) {
+            erros.add(new ErroSintatico(nLinha, "Ausencia de "
+                    + "\"ate\" apos palavra-chave \"de\"."));
+            erro = true;
+        }
+        if (indexDo == -1) {
+            erros.add(new ErroSintatico(nLinha, "Ausencia de "
+                    + "\"faca\" apos palavra-chave \"ate\"."));
+            erro = true;
+        }
+        if (indexDo + 1 < linha.size() - 1) {
+            erros.add(new ErroSintatico(nLinha, "Token apos a "
+                    + "palavra-chave \"faca\"."));
+            erro = true;
+        }
+        if(indexFor + 1 < linha.size()){
+            if (!"id".equals(linha.get(indexFor + 1).getTipo())) {
+                erros.add(new ErroSintatico(nLinha, "Identificador a ser "
+                        + "iterado deve ser uma variavel."));
+                erro = true;
+            }
+            if (!"int".equals(linha.get(indexFrom + 1).getTipo())
+                    && !"float".equals(linha.get(indexFrom + 1).getTipo())) {
+                erros.add(new ErroSintatico(nLinha, "Valor inicial deve ser "
+                        + "numerico."));
+                erro = true;
+            }
+            if (!"int".equals(linha.get(indexTo + 1).getTipo())
+                    && !"float".equals(linha.get(indexTo + 1).getTipo())) {
+                erros.add(new ErroSintatico(nLinha, "Valor final deve ser "
+                        + "numerico."));
+                erro = true;
+            }
+        }
+        if (indexFrom != -1
+                && indexFrom - indexFor > 2) {
+            erros.add(new ErroSintatico(nLinha, "Quantidade excessiva "
+                    + "de identificadores a serem iterados."));
+            erro = true;
+        }
+        if (indexTo != -1
+                && indexTo - indexFrom > 2) {
+            erros.add(new ErroSintatico(nLinha, "Quantidade excessiva "
+                    + "de valores iniciais."));
+            erro = true;
+        }
+        if (indexDo != -1
+                && indexDo - indexTo > 2) {
+            erros.add(new ErroSintatico(nLinha, "Quantidade excessiva "
+                    + "de valores finais."));
+            erro = true;
+        }
+        
         return erro;
     }
-    private boolean estruturaFor() {
-        Stack<Integer> pilha = new Stack<>();
+    private boolean estruturaDef(int nLinha, ArrayList<Token> linha) {
         boolean erro = false;
+        
+        int indexDef = indexOf(linha, new Token("def", ""));
 
-        //Itera pelas linhas de codigo
-        for (Map.Entry<Integer, ArrayList<Token>> entrySet : linhas.entrySet()) {
-            Integer nLinha = entrySet.getKey();
-            ArrayList<Token> linha = entrySet.getValue();
-            
-            int indexFor = indexOf(linha, new Token("for", ""));
-            int indexEndFor = indexOf(linha, new Token("endfor", ""));
-
-            //Se for um endfor
-            if (indexEndFor != -1) {
-                if (pilha.empty()) {
-                    erros.add(new ErroSintatico(nLinha, "Todos os blocos "
-                            + "\"para\" ja foram encerrados."));
-                    erro = true;
-                }
-                pilha.pop();
-                if (linha.size() != 2) {
-                    erros.add(new ErroSintatico(nLinha, "Palavra-chave \"fim-para\""
-                            + "deve estar sozinha na linha."));
-                    erro = true;
-                }
-            } //Se for um for
-            else if (indexFor != -1) {
-                pilha.push(nLinha);
-                int indexFrom = indexOf(linha, new Token("from", ""));
-                int indexTo = indexOf(linha, new Token("to", ""));
-                int indexDo = indexOf(linha, new Token("do", ""));
-                if (indexFor > 0) {
-                    erros.add(new ErroSintatico(nLinha, "Token antes da "
-                            + "palavra-chave \"para\"."));
-                    erro = true;
-                }
-                if (indexFrom == -1) {
-                    erros.add(new ErroSintatico(nLinha, "Ausencia de "
-                            + "\"de\" apos palavra-chave \"para\"."));
-                    erro = true;
-                }
-                if (indexTo == -1) {
-                    erros.add(new ErroSintatico(nLinha, "Ausencia de "
-                            + "\"ate\" apos palavra-chave \"de\"."));
-                    erro = true;
-                }
-                if (indexDo == -1) {
-                    erros.add(new ErroSintatico(nLinha, "Ausencia de "
-                            + "\"faca\" apos palavra-chave \"ate\"."));
-                    erro = true;
-                }
-                if (indexDo + 1 < linha.size() - 1) {
-                    erros.add(new ErroSintatico(nLinha, "Token apos a "
-                            + "palavra-chave \"faca\"."));
-                    erro = true;
-                }
-                if(indexFor + 1 < linha.size()){
-                    if (!"id".equals(linha.get(indexFor + 1).getTipo())) {
-                        erros.add(new ErroSintatico(nLinha, "Identificador a ser "
-                                + "iterado deve ser uma variavel."));
-                        erro = true;
-                    }
-                    if (!"int".equals(linha.get(indexFrom + 1).getTipo())
-                            && !"float".equals(linha.get(indexFrom + 1).getTipo())) {
-                        erros.add(new ErroSintatico(nLinha, "Valor inicial deve ser "
-                                + "numerico."));
-                        erro = true;
-                    }
-                    if (!"int".equals(linha.get(indexTo + 1).getTipo())
-                            && !"float".equals(linha.get(indexTo + 1).getTipo())) {
-                        erros.add(new ErroSintatico(nLinha, "Valor final deve ser "
-                                + "numerico."));
-                        erro = true;
-                    }
-                }
-                if (indexFrom != -1
-                        && indexFrom - indexFor > 2) {
-                    erros.add(new ErroSintatico(nLinha, "Quantidade excessiva "
-                            + "de identificadores a serem iterados."));
-                    erro = true;
-                }
-                if (indexTo != -1
-                        && indexTo - indexFrom > 2) {
-                    erros.add(new ErroSintatico(nLinha, "Quantidade excessiva "
-                            + "de valores iniciais."));
-                    erro = true;
-                }
-                if (indexDo != -1
-                        && indexDo - indexTo > 2) {
-                    erros.add(new ErroSintatico(nLinha, "Quantidade excessiva "
-                            + "de valores finais."));
-                    erro = true;
-                }
-            }
-        }
-        //Se houver for nao encerrado
-        while (!pilha.empty()) {
-            Integer nLinha = pilha.pop();
-            erros.add(new ErroSintatico(nLinha, "Estrutura de repeticao "
-                    + "nao encerrada."));
+        if (indexDef > 0) {
+            erros.add(new ErroSintatico(nLinha, "Token antes da "
+                    + "palavra-chave \"funcao\"."));
             erro = true;
         }
-        return erro;
-    }
-    private boolean estruturaDef() {
-        Stack<Integer> pilha = new Stack<>();
-        boolean erro = false;
-
-        //Itera pelas linhas de codigo
-        for (Map.Entry<Integer, ArrayList<Token>> entrySet : linhas.entrySet()) {
-            Integer nLinha = entrySet.getKey();
-            ArrayList<Token> linha = entrySet.getValue();
-            
-            int indexDef = indexOf(linha, new Token("def", ""));
-            int indexEndDef = indexOf(linha, new Token("enddef", ""));
-
-            //Se for um enddef
-            if (indexEndDef != -1) {
-                if (pilha.empty()) {
-                    erros.add(new ErroSintatico(nLinha, "Todas as definicoes "
-                            + "de funcoes ja foram encerrados."));
-                    erro = true;
-                }
-                pilha.pop();
-                if (linha.size() != 2) {
-                    erros.add(new ErroSintatico(nLinha, "Palavra-chave \"fim-funcao\""
-                            + "deve estar sozinha na linha."));
-                    erro = true;
-                }
-            } //Se for um def
-            else if (indexDef != -1) {
-                pilha.push(nLinha);
-                if (indexDef > 0) {
-                    erros.add(new ErroSintatico(nLinha, "Token antes da "
-                            + "palavra-chave \"funcao\"."));
-                    erro = true;
-                }
-                try {
-                    funcao(linha, indexDef + 1, linha.size() - 1);
-                } catch (ErroSintatico e) {
-                    e.linha = nLinha;
-                    erros.add(e);
-                    erro = true;
-                }
-            }
-        }
-        //Se houver def nao encerrado
-        while (!pilha.empty()) {
-            Integer nLinha = pilha.pop();
-            erros.add(new ErroSintatico(nLinha, "Definicao de funcao "
-                    + "nao encerrada."));
+        try {
+            funcao(linha, indexDef + 1, linha.size() - 1);
+        } catch (ErroSintatico e) {
+            e.linha = nLinha;
+            erros.add(e);
             erro = true;
         }
+        
         return erro;
     }
     
