@@ -135,8 +135,6 @@ public class Alduin {
             }
         }
         
-        
-        
         /* ANALISE SINTATICA */
         AnalisadorSintatico s = null;
         try {
@@ -145,6 +143,7 @@ public class Alduin {
             s.analisar(print);
         } catch (/* ALTERAR */Exception e) {
             //TODO
+            e.printStackTrace();
         }
         if (file) {
             try { Files.delete(Paths.get(ipath + ".tokens.temp")); } catch (IOException ex) {

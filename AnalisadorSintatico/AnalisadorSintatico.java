@@ -11,8 +11,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Stack;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class AnalisadorSintatico {
 
@@ -65,7 +63,7 @@ public class AnalisadorSintatico {
     /* FUNCOES AUXILIARES */
     private int indexOf(ArrayList array, Object x) {
         for (int i = 0; i < array.size(); i++) {
-            if (array.get(i) == x) {
+            if (array.get(i).equals(x)) {
                 return i;
             }
         }
@@ -73,7 +71,7 @@ public class AnalisadorSintatico {
     }
     private int indexOf(ArrayList array, Object x, int start, int end) {
         for (int i = start; i < end; i++) {
-            if (array.get(i) == x) {
+            if (array.get(i).equals(x)) {
                 return i;
             }
         }
@@ -83,11 +81,53 @@ public class AnalisadorSintatico {
         //Procura o elemento mais a direita
         //  usada devido ao fato de a gramatica derivar a esquerda
         for (int i = end-1; i >= start; i--) {
-            if (array.get(i) == x) {
+            if (array.get(i).equals(x)) {
                 return i;
             }
         }
         return -1;
+    }
+    private void linha2instr(){
+        Object[] keys = linhas.keySet().toArray();
+        ArrayList<Token> aux = new ArrayList<>();
+        int nLinha = 0;
+        
+        for (int i = 0; i < keys.length; i++) {
+            ArrayList<Token> linha = linhas.get(keys[i]);
+            
+            //Se instrucao continua na outra linha
+            if(!linha.get(linha.size()-1).equals(new Token(".endinstr", ""))){
+                //armazena a o numero da linha
+                if(aux.isEmpty()){
+                    nLinha = i;
+                }
+                //copia o conteudo
+                for(Token t: linha){
+                    aux.add(t);
+                }
+            }
+            //Se chegou ao fim da instrucao
+            else if(!aux.isEmpty()){
+                for(Token t: linha){
+                    aux.add(t);
+                }
+                //Substitui por uma linha
+                linhas.replace((Integer)keys[nLinha], aux);
+                //Retira as outras linhas
+                for(int j = nLinha + 1; j <= i; j++)
+                    linhas.remove(keys[j]);
+                
+                aux = new ArrayList<>();
+            }
+        }
+        
+        //Remove os endinstr de todas as instrucoes
+        keys = linhas.keySet().toArray();
+        for (int i = 0; i < keys.length; i++) {
+            aux = linhas.get(keys[i]);
+            aux.remove(aux.size()-1);
+            linhas.replace((Integer)keys[i], aux);
+        }
     }
 
     
@@ -96,18 +136,18 @@ public class AnalisadorSintatico {
     
     /* ANALISE MACRO */
     private boolean programa() {
-        Integer[] keys = (Integer[]) linhas.keySet().toArray();
+        Object[] keys = linhas.keySet().toArray();
         
         boolean erro = false;
         for (int i = 0; i < keys.length; i++) {
             if (linhas.get(keys[i]).contains(new Token("end", ""))) {
                 if (linhas.get(keys[i]).size() > 2) {
-                    erros.add(new ErroSintatico(keys[i], "\"fim\" deve estar"
+                    erros.add(new ErroSintatico((Integer)keys[i], "\"fim\" deve estar"
                             + "em uma linha a parte."));
                     erro = true;
                 }
                 if (i < keys.length - 1) {
-                    erros.add(new ErroSintatico(keys[i], "Instrucoes apos o "
+                    erros.add(new ErroSintatico((Integer)keys[i], "Instrucoes apos o "
                             + "termino do programa."));
                     erro = true;
                 }
@@ -131,6 +171,9 @@ public class AnalisadorSintatico {
             int indexAtrib = indexOf(linha, new Token("=", ""));
             
             if(indexAtrib != -1){
+                
+//                TRATAR ATRIBUICAO PARA VETOR
+                
                 if(indexAtrib != 1 ||
                    !"id".equals(linha.get(0).getTipo())){
                     erros.add(new ErroSintatico(nLinha, "Atribuicoes deve ser a uma"
@@ -228,7 +271,6 @@ public class AnalisadorSintatico {
     }
     private boolean estruturaIf() {
         Stack<Integer> pilha = new Stack<>();
-        Integer[] keys = (Integer[]) linhas.keySet().toArray();
         boolean erro = false;
 
         //Itera pelas linhas de codigo
@@ -294,7 +336,7 @@ public class AnalisadorSintatico {
         //Se houver if nao encerrado
         while (!pilha.empty()) {
             Integer nLinha = pilha.pop();
-            erros.add(new ErroSintatico(nLinha, "Bloco condicional"
+            erros.add(new ErroSintatico(nLinha, "Bloco condicional "
                     + "nao encerrado."));
             erro = true;
         }
@@ -339,24 +381,26 @@ public class AnalisadorSintatico {
                             + "\"entao\" apos palavra-chave \"faca\"."));
                     erro = true;
                 }
-                if (indexDo + 1 < linha.size() - 1) {
-                    erros.add(new ErroSintatico(nLinha, "Token apos a "
-                            + "palavra-chave \"faca\"."));
-                    erro = true;
-                }
-                try {
-                    condicao(linha, indexWhile + 1, indexDo - 1);
-                } catch (ErroSintatico e) {
-                    e.linha = nLinha;
-                    erros.add(e);
-                    erro = true;
+                else{
+                    if (indexDo + 1 < linha.size() - 1) {
+                        erros.add(new ErroSintatico(nLinha, "Token apos a "
+                                + "palavra-chave \"faca\"."));
+                        erro = true;
+                    }
+                    try {
+                        condicao(linha, indexWhile + 1, indexDo - 1);
+                    } catch (ErroSintatico e) {
+                        e.linha = nLinha;
+                        erros.add(e);
+                        erro = true;
+                    }
                 }
             }
         }
         //Se houver while nao encerrado
         while (!pilha.empty()) {
             Integer nLinha = pilha.pop();
-            erros.add(new ErroSintatico(nLinha, "Estrutura de repeticao"
+            erros.add(new ErroSintatico(nLinha, "Estrutura de repeticao "
                     + "nao encerrada."));
             erro = true;
         }
@@ -418,22 +462,24 @@ public class AnalisadorSintatico {
                             + "palavra-chave \"faca\"."));
                     erro = true;
                 }
-                if (!"id".equals(linha.get(indexFor + 1).getTipo())) {
-                    erros.add(new ErroSintatico(nLinha, "Identificador a ser "
-                            + "iterado deve ser uma variavel."));
-                    erro = true;
-                }
-                if (!"int".equals(linha.get(indexFrom + 1).getTipo())
-                        && !"float".equals(linha.get(indexFrom + 1).getTipo())) {
-                    erros.add(new ErroSintatico(nLinha, "Valor inicial deve ser "
-                            + "numerico."));
-                    erro = true;
-                }
-                if (!"int".equals(linha.get(indexTo + 1).getTipo())
-                        && !"float".equals(linha.get(indexTo + 1).getTipo())) {
-                    erros.add(new ErroSintatico(nLinha, "Valor final deve ser "
-                            + "numerico."));
-                    erro = true;
+                if(indexFor + 1 < linha.size()){
+                    if (!"id".equals(linha.get(indexFor + 1).getTipo())) {
+                        erros.add(new ErroSintatico(nLinha, "Identificador a ser "
+                                + "iterado deve ser uma variavel."));
+                        erro = true;
+                    }
+                    if (!"int".equals(linha.get(indexFrom + 1).getTipo())
+                            && !"float".equals(linha.get(indexFrom + 1).getTipo())) {
+                        erros.add(new ErroSintatico(nLinha, "Valor inicial deve ser "
+                                + "numerico."));
+                        erro = true;
+                    }
+                    if (!"int".equals(linha.get(indexTo + 1).getTipo())
+                            && !"float".equals(linha.get(indexTo + 1).getTipo())) {
+                        erros.add(new ErroSintatico(nLinha, "Valor final deve ser "
+                                + "numerico."));
+                        erro = true;
+                    }
                 }
                 if (indexFrom != -1
                         && indexFrom - indexFor > 2) {
@@ -458,7 +504,7 @@ public class AnalisadorSintatico {
         //Se houver for nao encerrado
         while (!pilha.empty()) {
             Integer nLinha = pilha.pop();
-            erros.add(new ErroSintatico(nLinha, "Estrutura de repeticao"
+            erros.add(new ErroSintatico(nLinha, "Estrutura de repeticao "
                     + "nao encerrada."));
             erro = true;
         }
@@ -509,7 +555,7 @@ public class AnalisadorSintatico {
         //Se houver def nao encerrado
         while (!pilha.empty()) {
             Integer nLinha = pilha.pop();
-            erros.add(new ErroSintatico(nLinha, "Definicao de funcao"
+            erros.add(new ErroSintatico(nLinha, "Definicao de funcao "
                     + "nao encerrada."));
             erro = true;
         }
@@ -518,10 +564,6 @@ public class AnalisadorSintatico {
     
     
     /* ANALISE MICRO */
-    private ArvoreBinaria<Token> atribuicao(ArrayList<Token> linha)
-            throws ErroSintatico {
-        
-    }
     private ArvoreBinaria<Token> condicao(ArrayList<Token> linha, int start, int end)
             throws ErroSintatico {
         
@@ -538,11 +580,9 @@ public class AnalisadorSintatico {
         
         //Descobre qual comparativo esta mais a direita
         int maior = -1;
-        int op = 0;
         for(int j = 0; j < 8; j++){
             if(indexComparativos[j] > maior){
                 maior = indexComparativos[j];
-                op = j;
             }
         }
         
@@ -551,9 +591,9 @@ public class AnalisadorSintatico {
             return expressao(linha, start, end);
         
         //Geracao da arvore sintatica
-        ArvoreBinaria<Token> arvore = new ArvoreBinaria<>(linha.get(op));
-        arvore.setDir(condicao(linha, start, op-1));
-        arvore.setEsq(expressao(linha, op+1, end));
+        ArvoreBinaria<Token> arvore = new ArvoreBinaria<>(linha.get(maior));
+        arvore.setDir(condicao(linha, start, maior-1));
+        arvore.setEsq(expressao(linha, maior+1, end));
         
         return arvore;
     }
@@ -567,11 +607,9 @@ public class AnalisadorSintatico {
         
         //Descobre qual comparativo esta mais a direita
         int maior = -1;
-        int op = 0;
-        for(int j = 0; j < 8; j++){
+        for(int j = 0; j < 2; j++){
             if(indexOperadores[j] > maior){
                 maior = indexOperadores[j];
-                op = j;
             }
         }
         
@@ -580,9 +618,9 @@ public class AnalisadorSintatico {
             return expressaoPrec(linha, start, end);
         
         //Geracao da arvore sintatica
-        ArvoreBinaria<Token> arvore = new ArvoreBinaria<>(linha.get(op));
-        arvore.setDir(expressao(linha, start, op-1));
-        arvore.setEsq(expressaoPrec(linha, op+1, end));
+        ArvoreBinaria<Token> arvore = new ArvoreBinaria<>(linha.get(maior));
+        arvore.setDir(expressao(linha, start, maior-1));
+        arvore.setEsq(expressaoPrec(linha, maior+1, end));
         
         return arvore;
     }
@@ -597,16 +635,16 @@ public class AnalisadorSintatico {
         //Descobre qual comparativo esta mais a direita
         int maior = -1;
         int op = 0;
-        for(int j = 0; j < 8; j++){
+        for(int j = 0; j < 2; j++){
             if(indexOperadores[j] > maior){
                 maior = indexOperadores[j];
                 op = j;
             }
         }
         
-        //Caso seja apenas uma expressao
+        //Caso seja apenas um termo
         if(maior == -1)
-            return expressaoPrec(linha, start, end);
+            return termo(linha, start, end);
         
         //Geracao da arvore sintatica
         ArvoreBinaria<Token> arvore = new ArvoreBinaria<>(linha.get(op));
@@ -620,6 +658,7 @@ public class AnalisadorSintatico {
         if ("(".equals(linha.get(start).getTipo())
                 && ")".equals(linha.get(end).getTipo())) {
             return condicao(linha, start + 1, end - 1);
+        //terminal
         } else if (start == end
                 && ("id".equals(linha.get(start).getTipo())
                 || "float".equals(linha.get(start).getTipo())
@@ -627,20 +666,50 @@ public class AnalisadorSintatico {
                 || "true".equals(linha.get(start).getTipo())
                 || "false".equals(linha.get(start).getTipo()))) {
             return new ArvoreBinaria<>(linha.get(start));
+        //funcao
         } else if ("fun".equals(linha.get(start).getTipo())
                 && "(".equals(linha.get(start + 1).getTipo())
                 && ")".equals(linha.get(end).getTipo())) {
             return funcao(linha, start, end);
+        //vetor
+        } else if ("id".equals(linha.get(start).getTipo())
+                && "[".equals(linha.get(start+1).getTipo())
+                && "]".equals(linha.get(end).getTipo())) {
+            int indexFim1 = indexOf(linha, new Token("[", ""), start+2, end);
+            int indexComeco2 = indexOf(linha, new Token("]", ""), start+1, end-1);
+            
+            ArvoreBinaria<Token> arvore = new ArvoreBinaria<>(linha.get(start));
+            
+            //2 dimensoes
+            if (indexFim1 != -1 && indexComeco2 != -1) {
+                condicao(linha, start+1, indexFim1-1);
+                condicao(linha, indexComeco2+1, end-1);
+            }
+            //1 dimensao
+            else{
+                condicao(linha, start+1, end-1);
+            }
+            
+            String valor = "";
+            
+            for(int i = start; i <= end; i++){
+                valor += "".equals(linha.get(i).getValor()) ?
+                              linha.get(i).getTipo():
+                              linha.get(i).getValor();
+            }
+            
+            return new ArvoreBinaria<>(new Token("id", valor));
         } else {
             throw new ErroSintatico("Termo invalido");
         }
     }
     private ArvoreBinaria<Token> funcao(ArrayList<Token> linha, int start, int end)
             throws ErroSintatico {
-        if (!"fun".equals(linha.get(start).getTipo())
+        if (end - start < 3
+                || !"fun".equals(linha.get(start).getTipo())
                 || !"(".equals(linha.get(start + 1).getTipo())
                 || !")".equals(linha.get(end).getTipo())) {
-            throw new ErroSintatico("Chamada a funcao mal formada");
+            throw new ErroSintatico("Funcao mal formada");
         }
 
         boolean correto = true;
@@ -657,7 +726,15 @@ public class AnalisadorSintatico {
                 i = end;
             }
         }
-        return ????
+            
+        String valor = "";
+        for(int j = start; j <= end; j++){
+            valor += "".equals(linha.get(j).getValor()) ?
+                          linha.get(j).getTipo():
+                          linha.get(j).getValor();
+        }
+
+        return new ArvoreBinaria<>(new Token("fun", valor));
     }
 
     /* ==================================================================== */
@@ -668,13 +745,17 @@ public class AnalisadorSintatico {
     
     public boolean analisar(boolean print) {
         boolean erro = false;
+        
+        /* Retira os endinstr e unifica as linhas */
+        linha2instr();
 
         /* Analise de blocos do codigo */
         erro |= programa();
         erro |= estruturaBlocos();
-        erro |= atribuicoes();
-        erro |= declVetor();
-
+        //erro |= atribuicoes();
+        //erro |= declVetor();
+        
+        
         //Imprime os erros da execucao
         if(erro){
             //Ordena os erros pela linha em que ocorreram
@@ -684,6 +765,8 @@ public class AnalisadorSintatico {
                 System.err.println(e.toString());
             }
         }
+        
+        
         //Se fez analise sintatica corretamente, mostra as arvores
         //    sintaticas resultantes
         else if (print) {
