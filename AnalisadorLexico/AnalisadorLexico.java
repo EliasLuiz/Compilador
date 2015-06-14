@@ -187,30 +187,30 @@ public class AnalisadorLexico {
                     //Gerando tokens para quem estava ativo
                     else if(isVar){
                         Token t;
-                        //caso seja palavra chave
-                        if(lexemas.get(linha.substring(lexBegin, i)) != null)
-                            t = new Token(lexemas.get(linha.substring(lexBegin, i)), "");
                         //caso seja fim-estrutura
-                        else if(linha.length()-i>2 &&
-                                lexemas.get("fim-se").equals(linha.substring(lexBegin, i+3))){
+                        if(linha.length()-i>2 &&
+                                "fim-se".equals(linha.substring(lexBegin, i+3))){
                             i += 3;
                             continue;
                         }
                         else if(linha.length()-i>4 &&
-                                lexemas.get("fim-para").equals(linha.substring(lexBegin, i+5))){
+                                "fim-para".equals(linha.substring(lexBegin, i+5))){
                             i += 5;
                             continue;
                         }
                         else if(linha.length()-i>8 &&
-                                lexemas.get("fim-enquanto").equals(linha.substring(lexBegin, i+9))){
+                                "fim-enquanto".equals(linha.substring(lexBegin, i+9))){
                             i += 9;
                             continue;
                         }
                         else if(linha.length()-i>6 &&
-                                lexemas.get("fim-funcao").equals(linha.substring(lexBegin, i+7))){
+                                "fim-funcao".equals(linha.substring(lexBegin, i+7))){
                             i += 7;
                             continue;
                         }
+                        //caso seja palavra chave
+                        else if(lexemas.get(linha.substring(lexBegin, i)) != null)
+                            t = new Token(lexemas.get(linha.substring(lexBegin, i)), "");
                         //caso seja variavel
                         else
                             t = new Token(lexemas.get("var"), 

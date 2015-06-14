@@ -182,7 +182,7 @@ public class AnalisadorSintatico {
             if (indexElse != -1) {
                 //Pilha passa a armazenar linha do else
                 if(!"se".equals(pilha.peek().linha)){
-                    erros.add(new ErroSintatico(nLinha, "\"senao\" sem \"se\" +"
+                    erros.add(new ErroSintatico(nLinha, "\"senao\" sem \"se\" "
                             + "correspondente."));
                     erro = true;
                 }
@@ -190,8 +190,8 @@ public class AnalisadorSintatico {
                     pilha.pop();
                     pilha.push(new ErroSintatico(nLinha, "senao"));
                 }
-                if (linha.size() != 2) {
-                    erros.add(new ErroSintatico(nLinha, "Palavra-chave \"senao\""
+                if (linha.size() != 1) {
+                    erros.add(new ErroSintatico(nLinha, "Palavra-chave \"senao\" "
                             + "deve estar sozinha na linha."));
                     erro = true;
                 }
@@ -204,8 +204,8 @@ public class AnalisadorSintatico {
                             + "condicionais ja foram encerrados."));
                     erro = true;
                 }
-                else if(!"se".equals(pilha.peek().linha)
-                     && !"senao".equals(pilha.peek().linha)){
+                else if(!"se".equals(pilha.peek().erro)
+                     && !"senao".equals(pilha.peek().erro)){
                     erros.add(new ErroSintatico(nLinha, "\"fim-se\" sem \"se\" "
                             + "ou \"senao\" correspondente."));
                     erro = true;
@@ -213,8 +213,8 @@ public class AnalisadorSintatico {
                 else{
                     pilha.pop();
                 }
-                if (linha.size() != 2) {
-                    erros.add(new ErroSintatico(nLinha, "Palavra-chave \"fim-se\""
+                if (linha.size() != 1) {
+                    erros.add(new ErroSintatico(nLinha, "Palavra-chave \"fim-se\" "
                             + "deve estar sozinha na linha."));
                     erro = true;
                 }
@@ -236,7 +236,7 @@ public class AnalisadorSintatico {
                             + "\"enquanto\" ja foram encerrados."));
                     erro = true;
                 }
-                else if(!"enquanto".equals(pilha.peek().linha)){
+                else if(!"enquanto".equals(pilha.peek().erro)){
                     erros.add(new ErroSintatico(nLinha, "\"fim-enquanto\" sem "
                             + "\"enquanto\" correspondente."));
                     erro = true;
@@ -244,8 +244,8 @@ public class AnalisadorSintatico {
                 else{
                     pilha.pop();
                 }
-                if (linha.size() != 2) {
-                    erros.add(new ErroSintatico(nLinha, "Palavra-chave \"fim-enquanto\""
+                if (linha.size() != 1) {
+                    erros.add(new ErroSintatico(nLinha, "Palavra-chave \"fim-enquanto\" "
                             + "deve estar sozinha na linha."));
                     erro = true;
                 }
@@ -267,7 +267,7 @@ public class AnalisadorSintatico {
                             + "\"para\" ja foram encerrados."));
                     erro = true;
                 }
-                else if(!"para".equals(pilha.peek().linha)){
+                else if(!"para".equals(pilha.peek().erro)){
                     erros.add(new ErroSintatico(nLinha, "\"fim-para\" sem "
                             + "\"para\" correspondente."));
                     erro = true;
@@ -275,8 +275,8 @@ public class AnalisadorSintatico {
                 else{
                     pilha.pop();
                 }
-                if (linha.size() != 2) {
-                    erros.add(new ErroSintatico(nLinha, "Palavra-chave \"fim-para\""
+                if (linha.size() != 1) {
+                    erros.add(new ErroSintatico(nLinha, "Palavra-chave \"fim-para\" "
                             + "deve estar sozinha na linha."));
                     erro = true;
                 }
@@ -298,7 +298,7 @@ public class AnalisadorSintatico {
                             + "de funcoes ja foram encerrados."));
                     erro = true;
                 }
-                else if(!"funcao".equals(pilha.peek().linha)){
+                else if(!"funcao".equals(pilha.peek().erro)){
                     erros.add(new ErroSintatico(nLinha, "\"fim-funcao\" sem "
                             + "\"funcao\" correspondente."));
                     erro = true;
@@ -307,7 +307,7 @@ public class AnalisadorSintatico {
                     pilha.pop();
                 }
                 if (linha.size() != 2) {
-                    erros.add(new ErroSintatico(nLinha, "Palavra-chave \"fim-funcao\""
+                    erros.add(new ErroSintatico(nLinha, "Palavra-chave \"fim-funcao\" "
                             + "deve estar sozinha na linha."));
                     erro = true;
                 }
@@ -454,7 +454,7 @@ public class AnalisadorSintatico {
                     + "\"entao\" apos palavra-chave \"se\"."));
             erro = true;
         }
-        if (indexThen + 1 < linha.size() - 1) {
+        if (indexThen + 1 < linha.size()) {
             erros.add(new ErroSintatico(nLinha, "Token apos a "
                     + "palavra-chave \"entao\"."));
             erro = true;
@@ -487,7 +487,7 @@ public class AnalisadorSintatico {
             erro = true;
         }
         else{
-            if (indexDo + 1 < linha.size() - 1) {
+            if (indexDo + 1 < linha.size()) {
                 erros.add(new ErroSintatico(nLinha, "Token apos a "
                         + "palavra-chave \"faca\"."));
                 erro = true;
@@ -530,7 +530,7 @@ public class AnalisadorSintatico {
                     + "\"faca\" apos palavra-chave \"ate\"."));
             erro = true;
         }
-        if (indexDo + 1 < linha.size() - 1) {
+        if (indexDo + 1 < linha.size()) {
             erros.add(new ErroSintatico(nLinha, "Token apos a "
                     + "palavra-chave \"faca\"."));
             erro = true;
@@ -739,24 +739,23 @@ public class AnalisadorSintatico {
     }
     private ArvoreBinaria<Token> funcao(ArrayList<Token> linha, int start, int end)
             throws ErroSintatico {
-        if (end - start < 3
-                || !"fun".equals(linha.get(start).getTipo())
+        if (end - start > 2
+            && (!"fun".equals(linha.get(start).getTipo())
                 || !"(".equals(linha.get(start + 1).getTipo())
-                || !")".equals(linha.get(end).getTipo())) {
+                || !")".equals(linha.get(end).getTipo()))) {
             throw new ErroSintatico("Funcao mal formada");
         }
-
-        boolean correto = true;
-        int i = start;
+        
+        int i = start+2;
         int virgula;
         //Analise dos parametros
         while (i != end) {
-            virgula = indexOf(null, new Token(",", ""), i, end);
+            virgula = indexOf(linha, new Token(",", ""), i, end-1);
             if (virgula != -1) {
                 condicao(linha, i, virgula - 1);
                 i = virgula + 1;
             } else {
-                condicao(linha, i, end);
+                condicao(linha, i, end-1);
                 i = end;
             }
         }

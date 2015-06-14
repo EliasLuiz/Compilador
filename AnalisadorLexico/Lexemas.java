@@ -46,8 +46,10 @@ public class Lexemas {
         lexemas.put(".endinstr", ".endinstr");
         lexemas.put("verdadeiro", "true");
         lexemas.put("falso", "false");
+        lexemas.put("função", "def");
         lexemas.put("funcao", "def");
         lexemas.put("fim-funcao", "enddef");
+        lexemas.put("fim-função", "enddef");
         lexemas.put("fim", "end");
         //Tipos
         lexemas.put("int", "int");
@@ -59,13 +61,17 @@ public class Lexemas {
         //Condicionais
         lexemas.put("se", "if");
         lexemas.put("então", "then");
+        lexemas.put("entao", "then");
         lexemas.put("senão", "else");
+        lexemas.put("senao", "else");
         lexemas.put("fim-se", "endif");
         //Loops
         lexemas.put("para", "for");
         lexemas.put("de", "from");
         lexemas.put("até", "to");
+        lexemas.put("ate", "to");
         lexemas.put("faça", "do");
+        lexemas.put("faca", "do");
         lexemas.put("fim-para", "endfor");
         lexemas.put("enquanto", "while");
         lexemas.put("fim-enquanto", "endwhile");
