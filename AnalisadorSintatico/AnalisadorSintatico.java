@@ -77,14 +77,45 @@ public class AnalisadorSintatico {
         }
         return -1;
     }
-    private int rIndexOf(ArrayList array, Object x, int start, int end) {
+    private int rIndexOf(ArrayList array, Object x) {
         //Procura o elemento mais a direita
         //  usada devido ao fato de a gramatica derivar a esquerda
-        for (int i = end-1; i >= start; i--) {
+        for (int i = array.size()-1; i >= 0; i--) {
             if (array.get(i).equals(x)) {
                 return i;
             }
         }
+        return -1;
+    }
+    private int rIndexOf(ArrayList array, Object x, int start, int end) {
+        //Procura o elemento mais a direita
+        //  usada devido ao fato de a gramatica derivar a esquerda
+        for (int i = end; i >= start; i--) {
+            if (array.get(i).equals(x)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    private int rIndexOfParen(ArrayList array, Object x, int start, int end) throws ErroSintatico{
+        //Procura o elemento mais a direita fora de parenteses
+        //  usada devido ao fato de a gramatica derivar a esquerda
+        Stack<Integer> pilha = new Stack<>();
+        for (int i = end; i >= start; i--) {
+            if (array.get(i).equals(new Token(")", "")))
+                pilha.push(1);
+            else if (array.get(i).equals(new Token("(", ""))){
+                if(pilha.empty())
+                    throw new ErroSintatico("\"(\" sem \")\" equivalente.");
+                pilha.pop();
+            }
+            if (array.get(i).equals(x)
+                && pilha.empty()) {
+                return i;
+            }
+        }
+        if(!pilha.empty())
+            throw new ErroSintatico("\")\" sem \"(\" equivalente.");
         return -1;
     }
     private void linha2instr(){
@@ -181,7 +212,7 @@ public class AnalisadorSintatico {
             //Se for um else
             if (indexElse != -1) {
                 //Pilha passa a armazenar linha do else
-                if(!"se".equals(pilha.peek().linha)){
+                if(!"se".equals(pilha.peek().erro)){
                     erros.add(new ErroSintatico(nLinha, "\"senao\" sem \"se\" "
                             + "correspondente."));
                     erro = true;
@@ -306,7 +337,7 @@ public class AnalisadorSintatico {
                 else{
                     pilha.pop();
                 }
-                if (linha.size() != 2) {
+                if (linha.size() != 1) {
                     erros.add(new ErroSintatico(nLinha, "Palavra-chave \"fim-funcao\" "
                             + "deve estar sozinha na linha."));
                     erro = true;
@@ -337,26 +368,24 @@ public class AnalisadorSintatico {
             int indexAtrib = indexOf(linha, new Token("=", ""));
             
             if(indexAtrib != -1){
-                
-//                TRATAR ATRIBUICAO PARA VETOR
-                
-                if(indexAtrib != 1 ||
-                   !"id".equals(linha.get(0).getTipo())){
-                    erros.add(new ErroSintatico(nLinha, "Atribuicoes deve ser a uma"
+                if(   !("id".equals(linha.get(0).getTipo())
+                       && indexAtrib == 1)
+                   && !("id".equals(linha.get(0).getTipo())
+                        && "[".equals(linha.get(1).getTipo())
+                        && "]".equals(linha.get(indexAtrib-1).getTipo()))){
+                    erros.add(new ErroSintatico(nLinha, "Atribuicoes deve ser a uma "
                             + "variavel"));
                     erro = true;
                 }
-                else{
-                    try {
-                        ArvoreBinaria<Token> arvore = new ArvoreBinaria<>(new Token("=", ""));
-                        arvore.setEsq(new ArvoreBinaria<>(linha.get(0)));
-                        arvore.setDir(condicao(linha, 0, linha.size()-1));
-                        arvores.put(nLinha, arvore);
-                    } catch (ErroSintatico e) {
-                        e.linha = nLinha;
-                        erros.add(e);
-                        erro = true;
-                    }
+                try {
+                    ArvoreBinaria<Token> arvore = new ArvoreBinaria<>(new Token("=", ""));
+                    arvore.setEsq(termo(linha, 0, indexAtrib-1));
+                    arvore.setDir(condicao(linha, indexAtrib+1, linha.size()-1));
+                    arvores.put(nLinha, arvore);
+                } catch (ErroSintatico e) {
+                    e.linha = nLinha;
+                    erros.add(e);
+                    erro = true;
                 }
             }
         }
@@ -379,7 +408,7 @@ public class AnalisadorSintatico {
                             + "\"vetor\"."));
                     erro = true;
                 }
-                if(indexVet == linha.size()-2){
+                if(indexVet == linha.size()-1){
                     erros.add(new ErroSintatico(nLinha, "Vetor a ser declarado nao "
                             + "especificado."));
                     erro = true;
@@ -391,13 +420,13 @@ public class AnalisadorSintatico {
                                 + "variavel valido."));
                         erro = true;
                     }
-                    if(indexVet + 6 > linha.size()){
+                    if(indexVet + 4 > linha.size() - 1){
                         erros.add(new ErroSintatico(nLinha, "Tamanho do vetor nao "
-                                + "especificado."));
+                                + "especificado corretamente."));
                         erro = true;
                     }
-                    //Vetor 1 ou 2 dimensoes
-                    if(indexVet + 6 >= linha.size()){
+                    //Vetor 1 dimensao
+                    if(indexVet + 4 == linha.size() - 1){
                         if(!"[".equals(linha.get(indexVet + 2).getTipo()) ||
                            !"]".equals(linha.get(indexVet + 4).getTipo())){
                             erros.add(new ErroSintatico(nLinha, "Tamanho do vetor nao "
@@ -405,29 +434,37 @@ public class AnalisadorSintatico {
                             erro = true;
                         }
                         if(!"int".equals(linha.get(indexVet + 3).getTipo())){
-                            erros.add(new ErroSintatico(nLinha, "Tamanho do vetor deve"
+                            erros.add(new ErroSintatico(nLinha, "Tamanho do vetor deve "
                                     + "ser inteiro."));
                             erro = true;
                         }
                     }
                     //Vetor 2 dimensoes
-                    if(indexVet + 9 == linha.size()){
-                       if(!"[".equals(linha.get(indexVet + 5).getTipo()) ||
-                          !"]".equals(linha.get(indexVet + 7).getTipo())){
+                    if(indexVet + 8 == linha.size()){
+                       if(!"[".equals(linha.get(indexVet + 2).getTipo())
+                          || !"]".equals(linha.get(indexVet + 4).getTipo())
+                          || !"[".equals(linha.get(indexVet + 5).getTipo())
+                          || !"]".equals(linha.get(indexVet + 7).getTipo())){
                             erros.add(new ErroSintatico(nLinha, "Tamanho do vetor nao "
-                                    + "especificado."));
+                                    + "especificado corretamente."));
                             erro = true;
                         }
                         
-                        if(!"int".equals(linha.get(indexVet + 3).getTipo())){
-                            erros.add(new ErroSintatico(nLinha, "Tamanho do vetor deve"
+                        if(!"int".equals(linha.get(indexVet + 3).getTipo())
+                           || !"int".equals(linha.get(indexVet + 6).getTipo())){
+                            erros.add(new ErroSintatico(nLinha, "Tamanho do vetor deve "
                                     + "ser inteiro."));
                             erro = true;
                         }
                     }
-                    else if (indexVet + 9 < linha.size()) {
-                        erros.add(new ErroSintatico(nLinha, "Nao deve haver tokens "
-                                + "apos a declaracao de um vetor."));
+                    else if (indexVet + 8 < linha.size()) {
+                        int indexColch = rIndexOf(linha, new Token("]", ""));
+                        if(indexColch <= 8)
+                            erros.add(new ErroSintatico(nLinha, "Tamanho do vetor nao "
+                                    + "especificado corretamente."));
+                        else
+                            erros.add(new ErroSintatico(nLinha, "Nao deve haver tokens "
+                                    + "apos a declaracao de um vetor."));
                         erro = true;
                     }
                 }
@@ -603,14 +640,14 @@ public class AnalisadorSintatico {
         
         //Armazena os indices das aparicoes dos tokens na linha
         Integer[] indexComparativos = new Integer[8];
-        indexComparativos[0] = rIndexOf(linha, new Token("and", ""), start, end);
-        indexComparativos[1] = rIndexOf(linha, new Token("or", ""), start, end);
-        indexComparativos[2] = rIndexOf(linha, new Token("==", ""), start, end);
-        indexComparativos[3] = rIndexOf(linha, new Token("!=", ""), start, end);
-        indexComparativos[4] = rIndexOf(linha, new Token("<", ""), start, end);
-        indexComparativos[5] = rIndexOf(linha, new Token("<=", ""), start, end);
-        indexComparativos[6] = rIndexOf(linha, new Token(">", ""), start, end);
-        indexComparativos[7] = rIndexOf(linha, new Token(">=", ""), start, end);
+        indexComparativos[0] = rIndexOfParen(linha, new Token("and", ""), start, end);
+        indexComparativos[1] = rIndexOfParen(linha, new Token("or", ""), start, end);
+        indexComparativos[2] = rIndexOfParen(linha, new Token("==", ""), start, end);
+        indexComparativos[3] = rIndexOfParen(linha, new Token("!=", ""), start, end);
+        indexComparativos[4] = rIndexOfParen(linha, new Token("<", ""), start, end);
+        indexComparativos[5] = rIndexOfParen(linha, new Token("<=", ""), start, end);
+        indexComparativos[6] = rIndexOfParen(linha, new Token(">", ""), start, end);
+        indexComparativos[7] = rIndexOfParen(linha, new Token(">=", ""), start, end);
         
         //Descobre qual comparativo esta mais a direita
         int maior = -1;
@@ -636,8 +673,8 @@ public class AnalisadorSintatico {
         
         //Armazena os indices das aparicoes dos tokens na linha
         Integer[] indexOperadores = new Integer[8];
-        indexOperadores[0] = rIndexOf(linha, new Token("+", ""), start, end);
-        indexOperadores[1] = rIndexOf(linha, new Token("-", ""), start, end);
+        indexOperadores[0] = rIndexOfParen(linha, new Token("+", ""), start, end);
+        indexOperadores[1] = rIndexOfParen(linha, new Token("-", ""), start, end);
         
         //Descobre qual comparativo esta mais a direita
         int maior = -1;
@@ -663,16 +700,14 @@ public class AnalisadorSintatico {
         
         //Armazena os indices das aparicoes dos tokens na linha
         Integer[] indexOperadores = new Integer[8];
-        indexOperadores[0] = rIndexOf(linha, new Token("*", ""), start, end);
-        indexOperadores[1] = rIndexOf(linha, new Token("/", ""), start, end);
+        indexOperadores[0] = rIndexOfParen(linha, new Token("*", ""), start, end);
+        indexOperadores[1] = rIndexOfParen(linha, new Token("/", ""), start, end);
         
         //Descobre qual comparativo esta mais a direita
         int maior = -1;
-        int op = 0;
         for(int j = 0; j < 2; j++){
             if(indexOperadores[j] > maior){
                 maior = indexOperadores[j];
-                op = j;
             }
         }
         
@@ -681,9 +716,9 @@ public class AnalisadorSintatico {
             return termo(linha, start, end);
         
         //Geracao da arvore sintatica
-        ArvoreBinaria<Token> arvore = new ArvoreBinaria<>(linha.get(op));
-        arvore.setDir(termo(linha, start, op-1));
-        arvore.setEsq(expressaoPrec(linha, op+1, end));
+        ArvoreBinaria<Token> arvore = new ArvoreBinaria<>(linha.get(maior));
+        arvore.setDir(termo(linha, maior+1, end));
+        arvore.setEsq(expressaoPrec(linha, start, maior-1));
         
         return arvore;
     }
@@ -698,7 +733,8 @@ public class AnalisadorSintatico {
                 || "float".equals(linha.get(start).getTipo())
                 || "int".equals(linha.get(start).getTipo())
                 || "true".equals(linha.get(start).getTipo())
-                || "false".equals(linha.get(start).getTipo()))) {
+                || "false".equals(linha.get(start).getTipo())
+                || "str".equals(linha.get(start).getTipo()))) {
             return new ArvoreBinaria<>(linha.get(start));
         //funcao
         } else if ("fun".equals(linha.get(start).getTipo())
@@ -709,19 +745,19 @@ public class AnalisadorSintatico {
         } else if ("id".equals(linha.get(start).getTipo())
                 && "[".equals(linha.get(start+1).getTipo())
                 && "]".equals(linha.get(end).getTipo())) {
-            int indexFim1 = indexOf(linha, new Token("[", ""), start+2, end);
-            int indexComeco2 = indexOf(linha, new Token("]", ""), start+1, end-1);
+            int indexFim1 = indexOf(linha, new Token("]", ""), start+2, end);
+            int indexComeco2 = rIndexOf(linha, new Token("[", ""), start+1, end-1);
             
             ArvoreBinaria<Token> arvore = new ArvoreBinaria<>(linha.get(start));
             
             //2 dimensoes
             if (indexFim1 != -1 && indexComeco2 != -1) {
-                condicao(linha, start+1, indexFim1-1);
+                condicao(linha, start+2, indexFim1-1);
                 condicao(linha, indexComeco2+1, end-1);
             }
             //1 dimensao
             else{
-                condicao(linha, start+1, end-1);
+                condicao(linha, start+2, end-1);
             }
             
             String valor = "";
@@ -785,8 +821,8 @@ public class AnalisadorSintatico {
         /* Analise de blocos do codigo */
         erro |= programa();
         erro |= estruturaBlocos();
-        //erro |= atribuicoes();
-        //erro |= declVetor();
+        erro |= atribuicoes();
+        erro |= declVetor();
         
         
         //Imprime os erros da execucao

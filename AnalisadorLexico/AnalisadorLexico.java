@@ -208,6 +208,12 @@ public class AnalisadorLexico {
                             i += 7;
                             continue;
                         }
+                        //caso tenha um . no meio do nome da variavel
+                        else if(c == '.'
+                                && Character.isLetter(linha.charAt(i+1))){
+                            i += 1;
+                            continue;
+                        }
                         //caso seja palavra chave
                         else if(lexemas.get(linha.substring(lexBegin, i)) != null)
                             t = new Token(lexemas.get(linha.substring(lexBegin, i)), "");
