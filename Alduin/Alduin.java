@@ -48,8 +48,7 @@ public class Alduin {
                             System.out.println("-print        --    imprime o processo de "
                                     + "compilacao passo-a-passo");
                             System.out.println("-file         --    a cada passo do processo de "
-                                    + "compilacao salva a estrutura de dados em arquivo."
-                                    + "Reduz consumo de memoria mas tambem reduz o desempenho");
+                                    + "compilacao salva a estrutura de dados em arquivo.");
                             System.out.println("-help         --    imprime a ajuda do programa");
                             System.out.println("");
                             System.exit(0);
@@ -141,18 +140,21 @@ public class Alduin {
             if (file) s = new AnalisadorSintatico(ipath + ".tokens.temp");
             else      s = new AnalisadorSintatico(l.getTokens());
             s.analisar(print);
-        } catch (/* ALTERAR */Exception e) {
-            //TODO
-            e.printStackTrace();
+        } catch (Exception ex) {
+                Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
         }
         if (file) {
+            /*
             try { Files.delete(Paths.get(ipath + ".tokens.temp")); } catch (IOException ex) {
                 Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
             }
-            
+            */
             try { s.salvar(ipath + ".arvores.temp"); } catch (Exception ex) {
                 Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
+        
+        /* ANALISE SINTATICA + OTIMIZACAO + GERACAO DE CODIGO */
+        
     }
 }

@@ -1,15 +1,15 @@
-package AnalisadorSintatico;
+package AnalisadorSemantico;
 
-public class ErroSintatico extends Exception implements Comparable<ErroSintatico>{
+public class ErroSemantico extends Exception implements Comparable<ErroSemantico>{
     
     public int linha;
     public String erro;
 
-    public ErroSintatico(String e) {
+    public ErroSemantico(String e) {
         linha = -1;
         erro = e;
     }
-    public ErroSintatico(int l, String e) {
+    public ErroSemantico(int l, String e) {
         linha = l;
         erro = e;
     }
@@ -18,10 +18,10 @@ public class ErroSintatico extends Exception implements Comparable<ErroSintatico
     public String toString(){
         return "Linha " + linha + ": " + erro;
     }
-    
+
     @Override
     //Ordena os erros pelo numero da linha em que ocorreram
-    public int compareTo(ErroSintatico e){
+    public int compareTo(ErroSemantico e) {
         return new Integer(linha).compareTo(e.linha);
     }
 }
