@@ -12,22 +12,22 @@ public class TabelaSimbolos implements Serializable {
         tabela = new HashMap<>();
     }
 
-    public void addSimbolo(Simbolo s, int linha) throws ErroSemantico {
+    public void addSimbolo(Simbolo s) throws ErroSemantico {
         String hash = s.nome + s.escopo;
 
         //Se ja existe
         if (tabela.containsKey(hash)) {
+            
             //Se tipo incopativel
             if (!tabela.get(hash).tipo.equals(s.tipo))
-                throw new ErroSemantico(linha, "Variavel \"" + s.nome + "\" e do tipo \""
+                throw new ErroSemantico(s.ultimoUso, "Variavel \"" + s.nome + "\" e do tipo \""
                         + tabela.get(hash).tipo + "\" e foi atribuida valor do tipo \""
                         + s.tipo + "\".");
 
-            tabela.get(hash).ultimoUso = linha;
-        } else {
-            s.ultimoUso = linha;
+            tabela.get(hash).ultimoUso = s.ultimoUso;
+        
+        } else 
             tabela.put(hash, s);
-        }
     }
 
     public Simbolo getSimbolo(String nome, int escopo, int linha) throws ErroSemantico {

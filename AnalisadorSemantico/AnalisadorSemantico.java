@@ -8,6 +8,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Stack;
 
 public class AnalisadorSemantico {
@@ -17,6 +18,9 @@ public class AnalisadorSemantico {
     private ArrayList<ErroSemantico> erros;
     private Escopo escopos;
     private TabelaSimbolos tabelaSimbolos;
+    
+    /* VARIAVEIS AUXILIARES */
+    private int nLinha;
     
     
     
@@ -83,10 +87,16 @@ public class AnalisadorSemantico {
         return false;
     }
     //Verifica se tem determinado tipo de variavel
-    private boolean contains(ArrayList<Token> linha, String tipo, int start, int end){
+    private boolean contains(ArrayList<Token> linha, String tipo, int start, int end) throws ErroSemantico{
         for (int i = start; i < end; i++){
             if(tipo.equals(linha.get(i).getTipo()))
                 return true;
+            else if(   "id".equals(linha.get(i).getTipo())
+                    || "fun".equals(linha.get(i).getTipo())){
+                Simbolo s = tabelaSimbolos.getSimbolo(linha.get(i).getValor(), escopos.getEscopo(), nLinha);
+                if (s.tipo.equals(tipo))
+                    return true;
+            }
         }
         return false;
     }
@@ -95,26 +105,53 @@ public class AnalisadorSemantico {
     
     /* FUNCOES DE ANALISE SEMANTICA */
     //Retorna o tipo de um expressao/condicao
-    private String tipoExpressao(ArrayList<Token> linha, int start, int end){
+    private String tipoExpressao(ArrayList<Token> linha, int start, int end) throws ErroSemantico {
         
-        //Se e expressao entre parenteses
-        if(linha.get(start) == new Token("(", "") &&
-           linha.get(end) == new Token(")", ""))
+        //Checa se e expressao entre parenteses
+        //Encontra o operador mais a direita fora de parenteses
+        Token[] operador = new Token[14];
+        operador[0] = new Token("==", "");
+        operador[1] = new Token("!=", "");
+        operador[2] = new Token(">=", "");
+        operador[3] = new Token("<=", "");
+        operador[4] = new Token(">", "");
+        operador[5] = new Token("<", "");
+        operador[6] = new Token("and", "");
+        operador[7] = new Token("or", "");
+        operador[8] = new Token("not", "");
+        operador[9] = new Token("+", "");
+        operador[10] = new Token("-", "");
+        operador[11] = new Token("*", "");
+        operador[12] = new Token("/", "");
+        operador[13] = new Token("=", "");
+        int maior = -1;
+        for(int j = 0; j < 14; j++){
+            if(rIndexOfParen(linha, operador[j], start, end) > maior){
+                maior = rIndexOfParen(linha, operador[j], start, end);
+                break;
+            }
+        }
+        //Se nao tiver nenhum operador fora de parenteses e tiver parenteses
+        if(   maior == -1
+           && linha.get(start) == new Token("(", "") 
+           && linha.get(end) == new Token(")", ""))
             return tipoExpressao(linha, start+1, end-1);
         
+        
+        
         //Se e boleano
-        else if(contains(linha, new Token("==", ""), start, end) ||
-                contains(linha, new Token("!=", ""), start, end) ||
-                contains(linha, new Token(">=", ""), start, end) ||
-                contains(linha, new Token("<=", ""), start, end) ||
-                contains(linha, new Token(">", ""), start, end) ||
-                contains(linha, new Token(">", ""), start, end) ||
-                contains(linha, new Token("and", ""), start, end) ||
-                contains(linha, new Token("or", ""), start, end) ||
-                contains(linha, new Token("not", ""), start, end) ||
-                contains(linha, new Token("true", ""), start, end) ||
-                contains(linha, new Token("false", ""), start, end) ||
-                contains(linha, "bool", start, end))
+        else if(   contains(linha, new Token("==", ""), start, end)
+                || contains(linha, new Token("!=", ""), start, end)
+                || contains(linha, new Token(">=", ""), start, end)
+                || contains(linha, new Token("<=", ""), start, end)
+                || contains(linha, new Token(">", ""), start, end)
+                || contains(linha, new Token(">", ""), start, end)
+                || contains(linha, new Token("and", ""), start, end)
+                || contains(linha, new Token("or", ""), start, end)
+                || contains(linha, new Token("not", ""), start, end)
+                || contains(linha, new Token("true", ""), start, end)
+                || contains(linha, new Token("false", ""), start, end)
+                || contains(linha, "bool", start, end))
             return "bool";
         //Se e string
         else if(contains(linha, "string", start, end))
@@ -258,11 +295,41 @@ public class AnalisadorSemantico {
                 consistenciaTipo(linha, start, maior-1);
                 consistenciaTipo(linha, maior+1, end);
             }
-            else{
+            else {
                 throw new ErroSemantico("Tipos invalidos para operador \"" +
                         operador[op].getTipo() + "\".");
             }
         }
+    }
+    //Teste condicao do se e do enquanto
+    private void testeCondicao(ArrayList<Token> linha, String bloco) throws ErroSemantico {
+        if("bool".equals(tipoExpressao(linha, 1, linha.size()-2)))
+            consistenciaTipo(linha, 1, linha.size()-2);
+        else
+            throw new ErroSemantico("Condicao do \"" + bloco + "\" deve ser booleana");
+            
+    }
+    //Teste atribuicao
+    private void testeAtribuicao(ArrayList<Token> linha) throws ErroSemantico {
+        
+        String var = linha.get(0).getValor();
+        String nomeVar = "";
+        boolean isVetor = false;
+        
+        //identificacao de vetor vetor
+        if(var.contains("[")){
+            nomeVar = var.substring(0, var.indexOf('[')).trim();
+            isVetor = true;
+        }
+        else
+            nomeVar = var;
+        
+        //Declaracao da variavel + definicao do tipo
+        Simbolo s = new Simbolo(nomeVar, tipoExpressao(linha, 2, linha.size()-1), nLinha, escopos.getEscopo(), false, isVetor);
+        tabelaSimbolos.addSimbolo(s);
+        
+        //Checagem de consistencia
+        consistenciaTipo(linha, 2, linha.size()-1);
     }
     
     
@@ -270,5 +337,45 @@ public class AnalisadorSemantico {
     /* FUNCAO PRINCIPAL */
     public void analisar(){
         
+        //Declarar nomes de funcao e parametros
+        //Analisar dentro das funcoes
+        //Descartar escopo e tabela
+        //Declarar nomes de funcao
+        //Analisar o programa
+        
+        
+        //Analise das funcoes
+        for (Map.Entry<Integer, ArrayList<Token>> entrySet : linhas.entrySet()) {
+            nLinha = entrySet.getKey();
+            ArrayList<Token> linha = entrySet.getValue();
+            
+            //Testar condicao do se == bool
+                //Checar consistencia
+            
+            //Testar condicao do enquanto == bool
+                //Checar consistencia
+            
+            //Testar atribuicao
+                //Se variavel nao existe declara
+                //Checar consistencia
+        }
+        
+        //Declaracao das funcoes
+        
+        //Analise do programa principal
+        for (Map.Entry<Integer, ArrayList<Token>> entrySet : linhas.entrySet()) {
+            nLinha = entrySet.getKey();
+            ArrayList<Token> linha = entrySet.getValue();
+            
+            //Testar condicao do se == bool
+                //Checar consistencia
+            
+            //Testar condicao do enquanto == bool
+                //Checar consistencia
+            
+            //Testar atribuicao
+                //Se variavel nao existe declara
+                //Checar consistencia
+        }
     }
 }
