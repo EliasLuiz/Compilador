@@ -657,9 +657,18 @@ public class AnalisadorSintatico {
             }
         }
         
-        //Caso seja apenas uma expressao
-        if(maior == -1)
-            return expressao(linha, start, end);
+        //Caso seja apenas uma expressao ou um not
+        if(maior == -1){
+            int indexNot = rIndexOfParen(linha, new Token(">=", ""), start, end);
+            //Se e apenas uma expressao
+            if(indexNot == -1)
+                return expressao(linha, start, end);
+            //Caso not nao esteja no comeco (ex: 1 nao ...)
+            else if(indexNot != start)
+                throw new ErroSintatico("Token inesperado antes do operador \"nao\".");
+            else
+                return condicao(linha, start+1, end);
+        }
         
         //Geracao da arvore sintatica
         ArvoreBinaria<Token> arvore = new ArvoreBinaria<>(linha.get(maior));

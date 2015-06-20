@@ -1,8 +1,9 @@
 package AnalisadorSemantico;
 
+import java.io.Serializable;
 import java.util.HashMap;
 
-public class TabelaSimbolos {
+public class TabelaSimbolos implements Serializable {
 
     private HashMap<String, Simbolo> tabela;
     //chave para o hash: (simbolo.nome + simbolo.escopo)
