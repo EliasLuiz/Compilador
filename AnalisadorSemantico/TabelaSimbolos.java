@@ -25,6 +25,9 @@ public class TabelaSimbolos implements Serializable {
             //Se foi utilizado mais a frente
             if(s.ultimoUso > tabela.get(s.hash).ultimoUso)
                 tabela.get(s.hash).ultimoUso = s.ultimoUso;
+            
+            if(s.isFuncao)
+                tabela.replace(s.hash, s);
         
         } else 
             tabela.put(s.hash, s);
@@ -38,4 +41,9 @@ public class TabelaSimbolos implements Serializable {
         return tabela.get(hash);
     }
 
+    public void print(){
+        for(String key : tabela.keySet()){
+            System.out.println(key + " = {\n" + tabela.get(key).toString() + "\n}");
+        }
+    }
 }

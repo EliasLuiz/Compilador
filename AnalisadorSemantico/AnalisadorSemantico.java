@@ -68,7 +68,7 @@ public class AnalisadorSemantico {
     
     /* FUNCOES AUXILIARES */
     private int indexOf(ArrayList array, Object x, int start, int end) {
-        for (int i = start; i < end; i++) {
+        for (int i = start; i <= end; i++) {
             if (array.get(i).equals(x)) {
                 return i;
             }
@@ -76,7 +76,7 @@ public class AnalisadorSemantico {
         return -1;
     }
     private int indexOfTipo(ArrayList<Token> array, String tipo, int start, int end) {
-        for (int i = start; i < end; i++) {
+        for (int i = start; i <= end; i++) {
             if (array.get(i).getTipo().equals(tipo)) {
                 return i;
             }
@@ -101,7 +101,7 @@ public class AnalisadorSemantico {
     }
     //Verifica se contem determinado token
     private boolean contains(ArrayList<Token> linha, Token t, int start, int end){
-        for (int i = start; i < end; i++) {
+        for (int i = start; i <= end; i++) {
             if(t.equals(linha.get(i)))
                 return true;
         }
@@ -109,7 +109,7 @@ public class AnalisadorSemantico {
     }
     //Verifica se tem determinado tipo de variavel
     private boolean contains(ArrayList<Token> linha, String tipo, int start, int end) throws ErroSemantico{
-        for (int i = start; i < end; i++){
+        for (int i = start; i <= end; i++){
             if(tipo.equals(linha.get(i).getTipo()))
                 return true;
             else if(   "id".equals(linha.get(i).getTipo())
@@ -179,8 +179,8 @@ public class AnalisadorSemantico {
                 || contains(linha, "bool", start, end))
             return "bool";
         //Se e string
-        else if(contains(linha, "string", start, end))
-            return "string";
+        else if(contains(linha, "str", start, end))
+            return "str";
         //Se e float
         else if(contains(linha, "float", start, end) ||
                 contains(linha, new Token("/", ""), start, end))
@@ -256,9 +256,9 @@ public class AnalisadorSemantico {
             //Se e operador +
             else if(   op == 9 
                     && (   (   tipoDir.equals(tipoEsq) 
-                            && (   "string".equals(tipoDir) 
+                            && (   "str".equals(tipoDir) 
                                 || "num".equals(tipoDir)))
-                        || (   "string".equals(tipoEsq)
+                        || (   "str".equals(tipoEsq)
                             && "num".equals(tipoDir)))){
                 consistenciaTipo(linha, start, maior-1);
                 consistenciaTipo(linha, maior+1, end);
@@ -297,9 +297,9 @@ public class AnalisadorSemantico {
                    && "bool".equals(tipoDir))               //Se e operador logico unario
                || (    op == 9 
                     && (   (   tipoDir.equals(tipoEsq) 
-                            && (   "string".equals(tipoDir) 
+                            && (   "str".equals(tipoDir) 
                                 || "num".equals(tipoDir)))
-                        || (   "string".equals(tipoEsq)
+                        || (   "str".equals(tipoEsq)
                             && "num".equals(tipoDir))))     //Se e operador +
                || (    op == 10 
                     && (   (   tipoDir.equals(tipoEsq) 
@@ -348,6 +348,7 @@ public class AnalisadorSemantico {
         
         //Declaracao da variavel + definicao do tipo
         escopos.adicionaVariavel(nomeVar);
+        String s = escopos.getVariavel(nomeVar);
         tabelaSimbolos.addSimbolo( new Simbolo(nomeVar, tipoExpressao(linha, 2, linha.size()-1), 
                 escopos.getVariavel(nomeVar), nLinha, false, isVetor));
         
@@ -418,6 +419,9 @@ public class AnalisadorSemantico {
                     i = limite + 2;
                     cont++;
                 }
+                if(cont != funcao.parametros.size())
+                    throw new ErroSemantico("Quantidade invalida de parametros para \"" +
+                            funcao.nome + "\" (" + cont + " parametros).");
             }
             
             //Se nao esta na funcao
@@ -491,15 +495,28 @@ public class AnalisadorSemantico {
     
     
     /* FUNCAO PRINCIPAL */
-    public void analisar(){
+    public void analisar(boolean print){
+        
+        boolean isFuncao = false;
         
         //Analise do programa
         for (Map.Entry<Integer, ArrayList<Token>> entrySet : linhas.entrySet()) {
             nLinha = entrySet.getKey();
             ArrayList<Token> linha = entrySet.getValue();
             
+            //Pula as definicoes de funcao
+            if(contains(linha, new Token("def", ""), 0, linha.size()-1))
+                isFuncao = true;
+            else if(contains(linha, new Token("enddef", ""), 0, linha.size()-1)){
+                isFuncao = false;
+                continue;
+            }
+            
+            if (isFuncao)
+                continue;
+            
             //Se encontrou chamada a uma funcao a analisa
-            int indexFun = indexOfTipo(linha, "fun", 0, linha.size());
+            int indexFun = indexOfTipo(linha, "fun", 0, linha.size()-1);
             while(indexFun != -1) {
                 try {
                     escopos.getVariavel(linha.get(indexFun).getValor());
@@ -513,7 +530,7 @@ public class AnalisadorSemantico {
                     }
                 }
                 //Caso tenha mais de uma chamada de funcao na mesma linha
-                indexFun = indexOfTipo(linha, "fun", indexFun+1, linha.size());
+                indexFun = indexOfTipo(linha, "fun", indexFun+1, linha.size()-1);
             }
             
             //Testa condicao do se
@@ -550,5 +567,9 @@ public class AnalisadorSemantico {
             System.err.println(erro);
         }
         
+        System.out.println("Analise Semantica:");
+        if(print){
+            tabelaSimbolos.print();
+        }
     }
 }

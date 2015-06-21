@@ -36,4 +36,20 @@ public class Simbolo {
     public void addParametro(String tipoParametro){
         parametros.add(tipoParametro);
     }
+    
+    public String toString(){
+        String ret = "nome: " + nome + "\n";
+        ret += "tipo: " + tipo;
+        if (isFuncao) {
+            ret += "\nfuncao\n";
+            ret += "parametros:  ";
+            for(String i : parametros)
+                if (i != null)
+                    ret += i + ", ";
+            ret = ret.substring(0, ret.length()-2);
+        } else if (isVetor) {
+            ret += "\nvetor";
+        }
+        return ret;
+    }
 }

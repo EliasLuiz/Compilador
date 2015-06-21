@@ -1,6 +1,7 @@
 package Alduin;
 
 import AnalisadorLexico.AnalisadorLexico;
+import AnalisadorSemantico.AnalisadorSemantico;
 import AnalisadorSintatico.AnalisadorSintatico;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -135,11 +136,11 @@ public class Alduin {
         }
         
         /* ANALISE SINTATICA */
-        AnalisadorSintatico s = null;
+        AnalisadorSintatico si = null;
         try {
-            if (file) s = new AnalisadorSintatico(ipath + ".tokens.temp");
-            else      s = new AnalisadorSintatico(l.getTokens());
-            s.analisar(print);
+            if (file) si = new AnalisadorSintatico(ipath + ".tokens.temp");
+            else      si = new AnalisadorSintatico(l.getTokens());
+            si.analisar(print);
         } catch (Exception ex) {
                 Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -149,12 +150,32 @@ public class Alduin {
                 Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
             }
             */
-            try { s.salvar(ipath + ".arvores.temp"); } catch (Exception ex) {
+            try { si.salvar(ipath + ".arvores.temp"); } catch (Exception ex) {
                 Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
         
-        /* ANALISE SINTATICA + OTIMIZACAO + GERACAO DE CODIGO */
+        /* ANALISE SEMANTICA */
+        AnalisadorSemantico se = null;
+        try {
+            if (file) se = new AnalisadorSemantico(ipath + ".tokens.temp");
+            else      se = new AnalisadorSemantico(l.getTokens());
+            se.analisar(print);
+        } catch (Exception ex) {
+                Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        if (file) {
+            /*
+            try { Files.delete(Paths.get(ipath + ".tokens.temp")); } catch (IOException ex) {
+                Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            */
+            try { se.salvar(ipath + ".arvores.temp"); } catch (Exception ex) {
+                Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        
+        /* OTIMIZACAO + GERACAO DE CODIGO */
         
     }
 }

@@ -14,6 +14,7 @@ public class Escopo {
     public Escopo() {
         escopos = new ArrayList<>();
         escopos.add(new HashMap<>());
+        nivel = new Stack<>();
         idEscopo = 0;
         nivel.add(idEscopo);
     }
@@ -41,7 +42,7 @@ public class Escopo {
     public String getVariavel(String variavel) throws ErroSemantico {
         for (int i = escopos.size()-1; i >= 0; i--) {
             if (escopos.get(i).containsKey(variavel)) {
-                return variavel;
+                return escopos.get(i).get(variavel);
             }
         }
         throw new ErroSemantico("Variavel \"" + variavel + "\" nao foi declarada.");
