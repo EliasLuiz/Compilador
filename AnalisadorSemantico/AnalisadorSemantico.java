@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Stack;
@@ -21,6 +22,7 @@ public class AnalisadorSemantico {
     
     /* VARIAVEIS AUXILIARES */
     private int nLinha;
+    private ArrayList<String> funcoesDeclaradas;
     
     
     
@@ -29,12 +31,16 @@ public class AnalisadorSemantico {
             throws IOException, ClassNotFoundException {
         carregar(path);
         erros = new ArrayList<>();
+        
+        funcoesDeclaradas = new ArrayList<>();
     }
     public AnalisadorSemantico(LinkedHashMap<Integer, ArrayList<Token>> tokens) {
         linhas = tokens;
         erros = new ArrayList<>();
         escopos = new Escopo();
         tabelaSimbolos = new TabelaSimbolos();
+        
+        funcoesDeclaradas = new ArrayList<>();
     }
 
     
@@ -61,18 +67,33 @@ public class AnalisadorSemantico {
     
     
     /* FUNCOES AUXILIARES */
+    private int indexOf(ArrayList array, Object x, int start, int end) {
+        for (int i = start; i < end; i++) {
+            if (array.get(i).equals(x)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    private int indexOfTipo(ArrayList<Token> array, String tipo, int start, int end) {
+        for (int i = start; i < end; i++) {
+            if (array.get(i).getTipo().equals(tipo)) {
+                return i;
+            }
+        }
+        return -1;
+    }
     //Procura o elemento mais a direita fora de parenteses
     //  usada devido ao fato de a gramatica derivar a esquerda
     private int rIndexOfParen(ArrayList array, Object x, int start, int end) throws ErroSemantico{
-        Stack<Integer> pilha = new Stack<>();
+        int pilha = 0;
         for (int i = end; i >= start; i--) {
             if (array.get(i).equals(new Token(")", "")))
-                pilha.push(1);
-            else if (array.get(i).equals(new Token("(", ""))){
-                pilha.pop();
-            }
-            if (array.get(i).equals(x)
-                && pilha.empty()) {
+                pilha++;
+            else if (array.get(i).equals(new Token("(", "")))
+                pilha--;
+            if (   array.get(i).equals(x)
+                && pilha == 0) {
                 return i;
             }
         }
@@ -93,7 +114,7 @@ public class AnalisadorSemantico {
                 return true;
             else if(   "id".equals(linha.get(i).getTipo())
                     || "fun".equals(linha.get(i).getTipo())){
-                Simbolo s = tabelaSimbolos.getSimbolo(linha.get(i).getValor(), escopos.getEscopo(), nLinha);
+                Simbolo s = tabelaSimbolos.getSimbolo(escopos.getVariavel(linha.get(i).getValor()), nLinha);
                 if (s.tipo.equals(tipo))
                     return true;
             }
@@ -106,6 +127,10 @@ public class AnalisadorSemantico {
     /* FUNCOES DE ANALISE SEMANTICA */
     //Retorna o tipo de um expressao/condicao
     private String tipoExpressao(ArrayList<Token> linha, int start, int end) throws ErroSemantico {
+        
+        //Se nao existe expressao
+        if(start > end)
+            return "null";
         
         //Checa se e expressao entre parenteses
         //Encontra o operador mais a direita fora de parenteses
@@ -160,9 +185,6 @@ public class AnalisadorSemantico {
         else if(contains(linha, "float", start, end) ||
                 contains(linha, new Token("/", ""), start, end))
             return "float";
-        //Se nao existe expressao
-        else if(start > end)
-            return "null";
         //Se e int
         else
             return "int";
@@ -313,7 +335,7 @@ public class AnalisadorSemantico {
     private void testeAtribuicao(ArrayList<Token> linha) throws ErroSemantico {
         
         String var = linha.get(0).getValor();
-        String nomeVar = "";
+        String nomeVar;
         boolean isVetor = false;
         
         //identificacao de vetor vetor
@@ -325,11 +347,145 @@ public class AnalisadorSemantico {
             nomeVar = var;
         
         //Declaracao da variavel + definicao do tipo
-        Simbolo s = new Simbolo(nomeVar, tipoExpressao(linha, 2, linha.size()-1), nLinha, escopos.getEscopo(), false, isVetor);
-        tabelaSimbolos.addSimbolo(s);
+        escopos.adicionaVariavel(nomeVar);
+        tabelaSimbolos.addSimbolo( new Simbolo(nomeVar, tipoExpressao(linha, 2, linha.size()-1), 
+                escopos.getVariavel(nomeVar), nLinha, false, isVetor));
         
         //Checagem de consistencia
         consistenciaTipo(linha, 2, linha.size()-1);
+    }
+    //Analise/Declaracao de funcao
+    //Nota: funcoes => lazy evaluation
+    //Nota2: tipagem de funcao baseado no tipo dos parametros da 1a chamada a mesma
+    //       ja que o tipo dos parametros e determinado pelo tipo dos valores passados
+    //       na 1a chamada
+    private void analisaFuncao(ArrayList<Token> linhaChamada, int start) throws ErroSemantico {
+        
+        //Inicializa o simbolo que representara a funcao (assume que nao esta na tabela de simbolos)
+        Simbolo funcao = new Simbolo(linhaChamada.get(start).getValor(), "", 
+                linhaChamada.get(start).getValor(), nLinha, true, false);
+        
+        //Procura o fim da funcao
+        int nivel = 1, fim = start + 2;
+        while (nivel > 0){
+            if("(".equals(linhaChamada.get(fim).getTipo()))
+                nivel++;
+            else if(")".equals(linhaChamada.get(fim).getTipo()))
+                nivel--;
+            fim++;
+        }
+        fim--;
+        //Adiciona tipo dos parametro da funcao
+        for (int i = start + 2; i < fim; i++) {
+            int limite = indexOf(linhaChamada, new Token(",", ""), i, fim) -1 ;
+            if(limite == -2)
+                limite = fim-1;
+            funcao.addParametro(tipoExpressao(linhaChamada, i, limite-1));
+            i = limite + 2;
+        }
+        
+        //Backup dos escopos antigos
+        Escopo backup = escopos;
+        escopos = new Escopo();
+        escopos.idEscopo = backup.idEscopo;
+        int backupLinha = nLinha;
+        
+        
+        boolean naFuncao = false;
+        
+        for (Map.Entry<Integer, ArrayList<Token>> entrySet : linhas.entrySet()) {
+            nLinha = entrySet.getKey();
+            ArrayList<Token> linha = entrySet.getValue();
+            
+            //Se chegou na funcao
+            if(   contains(linha, new Token("fun", funcao.nome), 0, linha.size()-1)
+               && contains(linha, new Token("def", ""), 0, linha.size()-1)){
+                
+                naFuncao = true;
+                escopos.adicionaEscopo();
+                
+                //Adiciona parametro da funcao na tabela de simbolos
+                int cont = 0;
+                for (int i = 3; i < linha.size()-2; i++) {
+                    int limite = indexOf(linha, new Token(",", ""), i, fim) -1 ;
+                    if(limite == -2)
+                        limite = fim-1;
+                    String nome = linha.get(i).getValor();
+                    escopos.adicionaVariavel(nome);
+                    Simbolo s = new Simbolo(nome, funcao.parametros.get(cont),
+                            escopos.getVariavel(nome), nLinha, false, false);
+                    tabelaSimbolos.addSimbolo(s);
+                    i = limite + 2;
+                    cont++;
+                }
+            }
+            
+            //Se nao esta na funcao
+            if (!naFuncao)
+                continue;
+            
+            //Se saiu da funcao
+            if(contains(linha, new Token("enddef", ""), 0, linha.size()-1)){
+                funcao.tipo = "null";
+                break;
+            }
+            
+            
+            //Se esta na funcao
+            
+            
+            
+            //Analisa normalmente a funcao
+            //############################################################################################################################
+            //                                                  COPIAR DE ANALISAR
+            //############################################################################################################################
+            //Testa condicao do se
+            if("if".equals(linha.get(0).getTipo())){
+                try {
+                    testeCondicao(linha, "se");
+                } catch (ErroSemantico ex) {
+                    ex.linha = nLinha;
+                    erros.add(ex);
+                }
+            }
+            //Testa condicao do enquanto
+            else if("while".equals(linha.get(0).getTipo())){
+                try {
+                    testeCondicao(linha, "enquanto");
+                } catch (ErroSemantico ex) {
+                    ex.linha = nLinha;
+                    erros.add(ex);
+                }
+            }
+            //Testa atribuicao
+            else if (indexOf(linha, new Token("=", ""), 0, linha.size()-1) != -1) {
+                try {
+                    testeAtribuicao(linha);
+                } catch (ErroSemantico ex) {
+                    ex.linha = nLinha;
+                    erros.add(ex);
+                }
+            }
+            //############################################################################################################################
+            //                                                  FIM DA COPIA DE ANALISAR
+            //############################################################################################################################
+            
+            
+            //Se encontrou valor de retorno
+            if(   "=".equals(linha.get(1).getTipo())
+               && funcao.nome.equals(linha.get(0).getValor())){
+                funcao.tipo = tipoExpressao(linha, 2, linha.size()-1);
+                break;
+            }
+        }
+        
+        //Restaura backup de escopo atualizando os ids
+        backup.idEscopo = escopos.idEscopo;
+        escopos = backup;
+        nLinha = backupLinha;
+        
+        escopos.adicionaFuncao(funcao.nome);
+        tabelaSimbolos.addSimbolo(funcao);
     }
     
     
@@ -337,45 +493,62 @@ public class AnalisadorSemantico {
     /* FUNCAO PRINCIPAL */
     public void analisar(){
         
-        //Declarar nomes de funcao e parametros
-        //Analisar dentro das funcoes
-        //Descartar escopo e tabela
-        //Declarar nomes de funcao
-        //Analisar o programa
-        
-        
-        //Analise das funcoes
+        //Analise do programa
         for (Map.Entry<Integer, ArrayList<Token>> entrySet : linhas.entrySet()) {
             nLinha = entrySet.getKey();
             ArrayList<Token> linha = entrySet.getValue();
             
-            //Testar condicao do se == bool
-                //Checar consistencia
+            //Se encontrou chamada a uma funcao a analisa
+            int indexFun = indexOfTipo(linha, "fun", 0, linha.size());
+            while(indexFun != -1) {
+                try {
+                    escopos.getVariavel(linha.get(indexFun).getValor());
+                } catch (ErroSemantico e) { //Se nao foi declarado
+                    try {
+                        analisaFuncao(linha, indexFun);
+                    } catch (ErroSemantico ex) { //Se deu erro
+                        ex.linha = nLinha;
+                        erros.add(ex);
+                        continue; //Passa pra proxima linha
+                    }
+                }
+                //Caso tenha mais de uma chamada de funcao na mesma linha
+                indexFun = indexOfTipo(linha, "fun", indexFun+1, linha.size());
+            }
             
-            //Testar condicao do enquanto == bool
-                //Checar consistencia
-            
-            //Testar atribuicao
-                //Se variavel nao existe declara
-                //Checar consistencia
+            //Testa condicao do se
+            if("if".equals(linha.get(0).getTipo())){
+                try {
+                    testeCondicao(linha, "se");
+                } catch (ErroSemantico ex) {
+                    ex.linha = nLinha;
+                    erros.add(ex);
+                }
+            }
+            //Testa condicao do enquanto
+            else if("while".equals(linha.get(0).getTipo())){
+                try {
+                    testeCondicao(linha, "enquanto");
+                } catch (ErroSemantico ex) {
+                    ex.linha = nLinha;
+                    erros.add(ex);
+                }
+            }
+            //Testa atribuicao
+            else if (indexOf(linha, new Token("=", ""), 0, linha.size()-1) != -1) {
+                try {
+                    testeAtribuicao(linha);
+                } catch (ErroSemantico ex) {
+                    ex.linha = nLinha;
+                    erros.add(ex);
+                }
+            }
         }
         
-        //Declaracao das funcoes
-        
-        //Analise do programa principal
-        for (Map.Entry<Integer, ArrayList<Token>> entrySet : linhas.entrySet()) {
-            nLinha = entrySet.getKey();
-            ArrayList<Token> linha = entrySet.getValue();
-            
-            //Testar condicao do se == bool
-                //Checar consistencia
-            
-            //Testar condicao do enquanto == bool
-                //Checar consistencia
-            
-            //Testar atribuicao
-                //Se variavel nao existe declara
-                //Checar consistencia
+        Collections.sort(erros);
+        for (ErroSemantico erro : erros) {
+            System.err.println(erro);
         }
+        
     }
 }

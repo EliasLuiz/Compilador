@@ -13,30 +13,27 @@ public class TabelaSimbolos implements Serializable {
     }
 
     public void addSimbolo(Simbolo s) throws ErroSemantico {
-        String hash = s.nome + s.escopo;
-
         //Se ja existe
-        if (tabela.containsKey(hash)) {
+        if (tabela.containsKey(s.hash)) {
             
-            //Se tipo incopativel
-            if (!tabela.get(hash).tipo.equals(s.tipo))
+            //Se tipo incompativel
+            if (!tabela.get(s.hash).tipo.equals(s.tipo))
                 throw new ErroSemantico(s.ultimoUso, "Variavel \"" + s.nome + "\" e do tipo \""
-                        + tabela.get(hash).tipo + "\" e foi atribuida valor do tipo \""
+                        + tabela.get(s.hash).tipo + "\" e foi atribuida valor do tipo \""
                         + s.tipo + "\".");
-
-            tabela.get(hash).ultimoUso = s.ultimoUso;
+            
+            //Se foi utilizado mais a frente
+            if(s.ultimoUso > tabela.get(s.hash).ultimoUso)
+                tabela.get(s.hash).ultimoUso = s.ultimoUso;
         
         } else 
-            tabela.put(hash, s);
+            tabela.put(s.hash, s);
     }
 
-    public Simbolo getSimbolo(String nome, int escopo, int linha) throws ErroSemantico {
-        String hash = nome + escopo;
-
-        if (!tabela.containsKey(hash))
-            throw new ErroSemantico(linha, "Variavel \"" + nome + "\" nao declarada.");
-        
-        tabela.get(hash).ultimoUso = linha;
+    public Simbolo getSimbolo(String hash, int linha) {
+        //Se foi utilizado mais a frente
+        if(linha > tabela.get(hash).ultimoUso)
+            tabela.get(hash).ultimoUso = linha;
         
         return tabela.get(hash);
     }

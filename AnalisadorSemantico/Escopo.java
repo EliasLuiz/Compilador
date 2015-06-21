@@ -6,9 +6,10 @@ import java.util.Stack;
 
 public class Escopo {
 
+    //Nome variavel -> hash da variavel na tabela
     private ArrayList<HashMap<String, String>> escopos;
     private Stack<Integer> nivel;
-    private int idEscopo;
+    public int idEscopo;
 
     public Escopo() {
         escopos = new ArrayList<>();
@@ -22,7 +23,7 @@ public class Escopo {
         nivel.push(++idEscopo);
     }
 
-    public void adicionaVariavel(String variavel, String tipo) {
+    public void adicionaVariavel(String variavel) {
         //Se variavel ja existe
         for (int i = escopos.size() - 1; i >= 0; i--) {
             if (escopos.get(i).containsKey(variavel)) {
@@ -30,16 +31,20 @@ public class Escopo {
             }
         }
 
-        escopos.get(escopos.size() - 1).put(variavel, tipo);
+        escopos.get(escopos.size() - 1).put(variavel, variavel + nivel.peek());
     }
-
-    public String tipoVariavel(String variavel) {
-        for (int i = escopos.size() - 1; i >= 0; i--) {
+    
+    public void adicionaFuncao(String funcao) {
+        escopos.get(0).put(funcao, funcao);
+    }
+    
+    public String getVariavel(String variavel) throws ErroSemantico {
+        for (int i = escopos.size()-1; i >= 0; i--) {
             if (escopos.get(i).containsKey(variavel)) {
-                return escopos.get(i).get(variavel);
+                return variavel;
             }
         }
-        return null;
+        throw new ErroSemantico("Variavel \"" + variavel + "\" nao foi declarada.");
     }
 
     public void removeEscopo() {
@@ -49,5 +54,10 @@ public class Escopo {
 
     public int getEscopo() {
         return nivel.peek();
+    }
+    
+    public void flush(){
+        nivel = new Stack<>();
+        escopos = new ArrayList<>();
     }
 }
