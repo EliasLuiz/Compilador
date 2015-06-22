@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Stack;
 
 public class AnalisadorSemantico {
     
@@ -170,7 +169,7 @@ public class AnalisadorSemantico {
                 || contains(linha, new Token(">=", ""), start, end)
                 || contains(linha, new Token("<=", ""), start, end)
                 || contains(linha, new Token(">", ""), start, end)
-                || contains(linha, new Token(">", ""), start, end)
+                || contains(linha, new Token("<", ""), start, end)
                 || contains(linha, new Token("and", ""), start, end)
                 || contains(linha, new Token("or", ""), start, end)
                 || contains(linha, new Token("not", ""), start, end)
@@ -236,57 +235,6 @@ public class AnalisadorSemantico {
             String tipoEsq = ( "int".equals(tipoEsqPuro) || "float".equals(tipoEsqPuro) ) ? "num" : tipoEsqPuro;
             String tipoDir = ( "int".equals(tipoDirPuro) || "float".equals(tipoDirPuro) ) ? "num" : tipoDirPuro;
             
-            /*//Se e comparador
-            if(op < 6 && tipoDir.equals(tipoEsq) && !"null".equals(tipoDir)){
-                consistenciaTipo(linha, start, maior-1);
-                consistenciaTipo(linha, maior+1, end);
-            }
-            
-            //Se e operador logico binario
-            else if(op < 8 && tipoDir.equals(tipoEsq) && "bool".equals(tipoDir)){
-                consistenciaTipo(linha, start, maior-1);
-                consistenciaTipo(linha, maior+1, end);
-            }
-            
-            //Se e operador logico unario
-            else if(op == 8 && "null".equals(tipoEsq) && "bool".equals(tipoDir)){
-                consistenciaTipo(linha, maior+1, end);
-            }
-            
-            //Se e operador +
-            else if(   op == 9 
-                    && (   (   tipoDir.equals(tipoEsq) 
-                            && (   "str".equals(tipoDir) 
-                                || "num".equals(tipoDir)))
-                        || (   "str".equals(tipoEsq)
-                            && "num".equals(tipoDir)))){
-                consistenciaTipo(linha, start, maior-1);
-                consistenciaTipo(linha, maior+1, end);
-            }
-            
-            //Se e operador -
-            else if(   op == 10 
-                    && (   (   tipoDir.equals(tipoEsq) 
-                            && "num".equals(tipoDir))
-                        || 
-                           (   "null".equals(tipoEsq)
-                            && "num".equals(tipoDir)))){
-                consistenciaTipo(linha, start, maior-1);
-                consistenciaTipo(linha, maior+1, end);
-            }
-            
-            //Se e operador aritimetico binario
-            else if(op < 13 && tipoDir.equals(tipoEsq) && "num".equals(tipoDir)){
-                consistenciaTipo(linha, start, maior-1);
-                consistenciaTipo(linha, maior+1, end);
-            }
-            
-            //Se e operador =
-            else if(op == 13 && tipoDir.equals(tipoEsq) && !"null".equals(tipoDir)){
-                consistenciaTipo(linha, start, maior-1);
-                consistenciaTipo(linha, maior+1, end);
-            }*/
-            
             if(   (   op < 6 && tipoDir.equals(tipoEsq) 
                    && !"null".equals(tipoDir) 
                    && !"bool".equals(tipoDir))              //Se e comparador
@@ -296,17 +244,17 @@ public class AnalisadorSemantico {
                    && "null".equals(tipoEsq) 
                    && "bool".equals(tipoDir))               //Se e operador logico unario
                || (    op == 9 
-                    && (   (   tipoDir.equals(tipoEsq) 
-                            && (   "str".equals(tipoDir) 
-                                || "num".equals(tipoDir)))
-                        || (   "str".equals(tipoEsq)
-                            && "num".equals(tipoDir))))     //Se e operador +
+                   && (   (   tipoDir.equals(tipoEsq) 
+                           && (   "str".equals(tipoDir) 
+                               || "num".equals(tipoDir)))
+                       || (   "str".equals(tipoEsq)
+                           && "num".equals(tipoDir))))     //Se e operador +
                || (    op == 10 
-                    && (   (   tipoDir.equals(tipoEsq) 
-                            && "num".equals(tipoDir))
-                        || 
-                           (   "null".equals(tipoEsq)
-                            && "num".equals(tipoDir))))     //Se e operador -
+                   && (   (   tipoDir.equals(tipoEsq) 
+                           && "num".equals(tipoDir))
+                       || 
+                          (   "null".equals(tipoEsq)
+                           && "num".equals(tipoDir))))     //Se e operador -
                || (   op < 13 
                    && tipoDir.equals(tipoEsq) 
                    && "num".equals(tipoDir))                //Se e operador aritimetico binario
@@ -363,7 +311,7 @@ public class AnalisadorSemantico {
     private void analisaFuncao(ArrayList<Token> linhaChamada, int start) throws ErroSemantico {
         
         //Inicializa o simbolo que representara a funcao (assume que nao esta na tabela de simbolos)
-        Simbolo funcao = new Simbolo(linhaChamada.get(start).getValor(), "", 
+        Simbolo funcao = new Simbolo(linhaChamada.get(start).getValor(), "null", 
                 linhaChamada.get(start).getValor(), nLinha, true, false);
         
         //Procura o fim da funcao
@@ -434,46 +382,12 @@ public class AnalisadorSemantico {
                 break;
             }
             
-            
-            //Se esta na funcao
-            
-            
-            
             //Analisa normalmente a funcao
-            //############################################################################################################################
-            //                                                  COPIAR DE ANALISAR
-            //############################################################################################################################
-            //Testa condicao do se
-            if("if".equals(linha.get(0).getTipo())){
-                try {
-                    testeCondicao(linha, "se");
-                } catch (ErroSemantico ex) {
-                    ex.linha = nLinha;
-                    erros.add(ex);
-                }
+            try {
+                analisaLinha(linha);
+            } catch (ErroSemantico e) {
+                erros.add(new ErroSemantico(nLinha, e.erro));
             }
-            //Testa condicao do enquanto
-            else if("while".equals(linha.get(0).getTipo())){
-                try {
-                    testeCondicao(linha, "enquanto");
-                } catch (ErroSemantico ex) {
-                    ex.linha = nLinha;
-                    erros.add(ex);
-                }
-            }
-            //Testa atribuicao
-            else if (indexOf(linha, new Token("=", ""), 0, linha.size()-1) != -1) {
-                try {
-                    testeAtribuicao(linha);
-                } catch (ErroSemantico ex) {
-                    ex.linha = nLinha;
-                    erros.add(ex);
-                }
-            }
-            //############################################################################################################################
-            //                                                  FIM DA COPIA DE ANALISAR
-            //############################################################################################################################
-            
             
             //Se encontrou valor de retorno
             if(   "=".equals(linha.get(1).getTipo())
@@ -490,6 +404,62 @@ public class AnalisadorSemantico {
         
         escopos.adicionaFuncao(funcao.nome);
         tabelaSimbolos.addSimbolo(funcao);
+    }
+    //Analisa uma linha de codigo, chamando as funcoes especificas
+    public void analisaLinha(ArrayList<Token> linha) throws ErroSemantico {
+        
+        try {
+            
+            //Caso conteudo da linha seja um se
+            if("if".equals(linha.get(0).getTipo())){
+                escopos.adicionaEscopo();
+                testeCondicao(linha, "se");
+            }
+            
+            //Caso conteudo da linha seja um enquanto
+            else if("while".equals(linha.get(0).getTipo())){
+                escopos.adicionaEscopo();
+                testeCondicao(linha, "enquanto");
+            }
+            
+            //Caso conteudo da linha seja um para
+            else if("for".equals(linha.get(0).getTipo())){
+                escopos.adicionaEscopo();
+                escopos.adicionaVariavel(linha.get(1).getValor());
+                tabelaSimbolos.addSimbolo(new Simbolo(linha.get(1).getValor(), "int",
+                        escopos.getVariavel(linha.get(1).getValor()), nLinha, false, false));
+            }
+            
+            //Caso conteudo da linha seja uma atribuicao
+            else if (indexOf(linha, new Token("=", ""), 0, linha.size()-1) != -1) {
+                testeAtribuicao(linha);
+            }
+            
+            //Caso conteudo da linha seja um senao
+            else if("else".equals(linha.get(0).getTipo())){
+                escopos.removeEscopo();
+                escopos.adicionaEscopo();
+            }
+            
+            //Caso conteudo da linha seja um fim-se
+            else if("endif".equals(linha.get(0).getTipo())){
+                escopos.removeEscopo();
+            }
+            
+            //Caso conteudo da linha seja um fim-enquanto
+            else if("endwhile".equals(linha.get(0).getTipo())){
+                escopos.removeEscopo();
+            }
+            
+            //Caso conteudo da linha seja um fim-para
+            else if("endfor".equals(linha.get(0).getTipo())){
+                escopos.removeEscopo();
+            }
+        
+        } catch (ErroSemantico e) {
+                e.linha = nLinha;
+                erros.add(e);
+        }
     }
     
     
@@ -514,52 +484,23 @@ public class AnalisadorSemantico {
             
             if (isFuncao)
                 continue;
-            
+                
             //Se encontrou chamada a uma funcao a analisa
             int indexFun = indexOfTipo(linha, "fun", 0, linha.size()-1);
             while(indexFun != -1) {
                 try {
                     escopos.getVariavel(linha.get(indexFun).getValor());
                 } catch (ErroSemantico e) { //Se nao foi declarado
-                    try {
-                        analisaFuncao(linha, indexFun);
-                    } catch (ErroSemantico ex) { //Se deu erro
-                        ex.linha = nLinha;
-                        erros.add(ex);
-                        continue; //Passa pra proxima linha
-                    }
+                    try { analisaFuncao(linha, indexFun); } 
+                    catch (ErroSemantico ex) { erros.add(new ErroSemantico(nLinha, ex.erro)); }
                 }
                 //Caso tenha mais de uma chamada de funcao na mesma linha
                 indexFun = indexOfTipo(linha, "fun", indexFun+1, linha.size()-1);
             }
+                
+            try { analisaLinha(linha);} 
+            catch (ErroSemantico e) { erros.add(new ErroSemantico(nLinha, e.erro)); }
             
-            //Testa condicao do se
-            if("if".equals(linha.get(0).getTipo())){
-                try {
-                    testeCondicao(linha, "se");
-                } catch (ErroSemantico ex) {
-                    ex.linha = nLinha;
-                    erros.add(ex);
-                }
-            }
-            //Testa condicao do enquanto
-            else if("while".equals(linha.get(0).getTipo())){
-                try {
-                    testeCondicao(linha, "enquanto");
-                } catch (ErroSemantico ex) {
-                    ex.linha = nLinha;
-                    erros.add(ex);
-                }
-            }
-            //Testa atribuicao
-            else if (indexOf(linha, new Token("=", ""), 0, linha.size()-1) != -1) {
-                try {
-                    testeAtribuicao(linha);
-                } catch (ErroSemantico ex) {
-                    ex.linha = nLinha;
-                    erros.add(ex);
-                }
-            }
         }
         
         Collections.sort(erros);
