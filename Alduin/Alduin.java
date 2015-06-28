@@ -3,6 +3,7 @@ package Alduin;
 import AnalisadorLexico.AnalisadorLexico;
 import AnalisadorSemantico.AnalisadorSemantico;
 import AnalisadorSintatico.AnalisadorSintatico;
+import GeradorCodigo.GeradorCodigo;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -12,13 +13,11 @@ import java.util.logging.Logger;
 public class Alduin {
 
     public static void main(String[] args) {
-        
+
         String ipath = "", //como fazer para multiplos arquivos?
                 opath = "";
         boolean print = false, file = false;
-        
-        
-        
+
         /* RECEPCAO DOS PARAMETROS */
         try {
             //leitura dos argumentos da linha de comando
@@ -114,68 +113,117 @@ public class Alduin {
             Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
             System.exit(1);
         }
-        
+
         if (ipath.isEmpty()) {
             System.err.println("Nao foi especificado arquivo de entrada");
             System.exit(2);
         }
-        
-        
-        
+
         /* ANALISE LEXICA */
         AnalisadorLexico l = new AnalisadorLexico(ipath);
-        try { l.analisar(print); } catch (IOException ex) {
+        try {
+            l.analisar(print);
+        } catch (IOException ex) {
             System.err.println("Arquivo " + ipath + " nao pode ser aberto");
             Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
             System.exit(2);
         }
         if (file) {
-            try { l.salvar(ipath + ".tokens.temp"); } catch (IOException ex) {
+            try {
+                l.salvar(ipath + ".tokens.temp");
+            } catch (IOException ex) {
                 Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
         
+        boolean erro = false;
+
         /* ANALISE SINTATICA */
         AnalisadorSintatico si = null;
         try {
-            if (file) si = new AnalisadorSintatico(ipath + ".tokens.temp");
-            else      si = new AnalisadorSintatico(l.getTokens());
-            si.analisar(print);
+            if (file) {
+                si = new AnalisadorSintatico(ipath + ".tokens.temp");
+            } else {
+                si = new AnalisadorSintatico(l.getTokens());
+            }
+            erro = si.analisar(print);
         } catch (Exception ex) {
-                Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
+            ex.printStackTrace();
+        }
+        if (erro) {
+            System.exit(1);
         }
         if (file) {
             /*
-            try { Files.delete(Paths.get(ipath + ".tokens.temp")); } catch (IOException ex) {
+             try { Files.delete(Paths.get(ipath + ".tokens.temp")); } catch (IOException ex) {
+             Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
+             }
+             */
+            try {
+                si.salvar(ipath + ".arvores.temp");
+            } catch (Exception ex) {
                 Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
-            }
-            */
-            try { si.salvar(ipath + ".arvores.temp"); } catch (Exception ex) {
-                Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
+                System.exit(3);
             }
         }
-        
+
         /* ANALISE SEMANTICA */
         AnalisadorSemantico se = null;
         try {
-            if (file) se = new AnalisadorSemantico(ipath + ".tokens.temp");
-            else      se = new AnalisadorSemantico(l.getTokens());
-            se.analisar(print);
+            if (file) {
+                se = new AnalisadorSemantico(ipath + ".tokens.temp");
+            } else {
+                se = new AnalisadorSemantico(l.getTokens());
+            }
+            erro |= se.analisar(print);
         } catch (Exception ex) {
-                Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
+            System.exit(3);
+        }
+        if (erro) {
+            System.exit(2);
         }
         if (file) {
             /*
-            try { Files.delete(Paths.get(ipath + ".tokens.temp")); } catch (IOException ex) {
+             try { Files.delete(Paths.get(ipath + ".tokens.temp")); } catch (IOException ex) {
+             Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
+             }*/
+            try {
+                se.salvar(ipath + ".tabela.temp");
+            } catch (Exception ex) {
                 Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
-            }
-            */
-            try { se.salvar(ipath + ".arvores.temp"); } catch (Exception ex) {
-                Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
+                System.exit(3);
             }
         }
-        
+
         /* OTIMIZACAO + GERACAO DE CODIGO */
-        
+        GeradorCodigo g = null;
+        try {
+            if (file) {
+                g = new GeradorCodigo(opath, ipath + ".tokens.temp", ipath + ".arvores.temp",
+                        ipath + ".tabela.temp");
+            } else {
+                g = new GeradorCodigo(opath, l.getTokens(), si.getArvores(), se.getTabelaSimbolos());
+            }
+            g.executar(print);
+        } catch (Exception ex) {
+            Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
+            System.exit(3);
+        }
+        if (erro) {
+            System.exit(2);
+        }
+        if (file) {
+            /*
+             try { Files.delete(Paths.get(ipath + ".tokens.temp")); } catch (IOException ex) {
+             Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
+             }
+            try {
+                se.salvar(ipath + ".arvores.temp");
+            } catch (Exception ex) {
+                Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
+            }
+             */
+        }
     }
 }

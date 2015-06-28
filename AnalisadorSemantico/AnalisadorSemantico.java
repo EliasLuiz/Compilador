@@ -21,7 +21,6 @@ public class AnalisadorSemantico {
     
     /* VARIAVEIS AUXILIARES */
     private int nLinha;
-    private ArrayList<String> funcoesDeclaradas;
     
     
     
@@ -30,16 +29,12 @@ public class AnalisadorSemantico {
             throws IOException, ClassNotFoundException {
         carregar(path);
         erros = new ArrayList<>();
-        
-        funcoesDeclaradas = new ArrayList<>();
     }
     public AnalisadorSemantico(LinkedHashMap<Integer, ArrayList<Token>> tokens) {
         linhas = tokens;
         erros = new ArrayList<>();
         escopos = new Escopo();
         tabelaSimbolos = new TabelaSimbolos();
-        
-        funcoesDeclaradas = new ArrayList<>();
     }
 
     
@@ -235,10 +230,12 @@ public class AnalisadorSemantico {
             String tipoEsq = ( "int".equals(tipoEsqPuro) || "float".equals(tipoEsqPuro) ) ? "num" : tipoEsqPuro;
             String tipoDir = ( "int".equals(tipoDirPuro) || "float".equals(tipoDirPuro) ) ? "num" : tipoDirPuro;
             
-            if(   (   op < 6 && tipoDir.equals(tipoEsq) 
+            if(   (   op < 6 
+                   && tipoDir.equals(tipoEsq) 
                    && !"null".equals(tipoDir) 
                    && !"bool".equals(tipoDir))              //Se e comparador
-               || (   op < 8 && tipoDir.equals(tipoEsq) 
+               || (   op < 8 
+                   && tipoDir.equals(tipoEsq) 
                    && "bool".equals(tipoDir))               //Se e operador logico binario
                || (   op == 8 
                    && "null".equals(tipoEsq) 
@@ -329,8 +326,8 @@ public class AnalisadorSemantico {
             int limite = indexOf(linhaChamada, new Token(",", ""), i, fim) -1 ;
             if(limite == -2)
                 limite = fim-1;
-            funcao.addParametro(tipoExpressao(linhaChamada, i, limite-1));
-            i = limite + 2;
+            funcao.addParametro(tipoExpressao(linhaChamada, i, limite));
+            i = limite + 1;
         }
         
         //Backup dos escopos antigos
@@ -355,7 +352,7 @@ public class AnalisadorSemantico {
                 
                 //Adiciona parametro da funcao na tabela de simbolos
                 int cont = 0;
-                for (int i = 3; i < linha.size()-2; i++) {
+                for (int i = 3; i < linha.size()-1; i++) {
                     int limite = indexOf(linha, new Token(",", ""), i, fim) -1 ;
                     if(limite == -2)
                         limite = fim-1;
@@ -364,7 +361,7 @@ public class AnalisadorSemantico {
                     Simbolo s = new Simbolo(nome, funcao.parametros.get(cont),
                             escopos.getVariavel(nome), nLinha, false, false);
                     tabelaSimbolos.addSimbolo(s);
-                    i = limite + 2;
+                    i = limite + 1;
                     cont++;
                 }
                 if(cont != funcao.parametros.size())
@@ -404,6 +401,7 @@ public class AnalisadorSemantico {
         
         escopos.adicionaFuncao(funcao.nome);
         tabelaSimbolos.addSimbolo(funcao);
+        
     }
     //Analisa uma linha de codigo, chamando as funcoes especificas
     public void analisaLinha(ArrayList<Token> linha) throws ErroSemantico {
@@ -465,7 +463,7 @@ public class AnalisadorSemantico {
     
     
     /* FUNCAO PRINCIPAL */
-    public void analisar(boolean print){
+    public boolean analisar(boolean print){
         
         boolean isFuncao = false;
         
@@ -492,25 +490,30 @@ public class AnalisadorSemantico {
                     escopos.getVariavel(linha.get(indexFun).getValor());
                 } catch (ErroSemantico e) { //Se nao foi declarado
                     try { analisaFuncao(linha, indexFun); } 
-                    catch (ErroSemantico ex) { erros.add(new ErroSemantico(nLinha, ex.erro)); }
+                    catch (ErroSemantico ex) { 
+                        erros.add(new ErroSemantico(nLinha, ex.erro)); 
+                    }
                 }
                 //Caso tenha mais de uma chamada de funcao na mesma linha
                 indexFun = indexOfTipo(linha, "fun", indexFun+1, linha.size()-1);
             }
                 
-            try { analisaLinha(linha);} 
-            catch (ErroSemantico e) { erros.add(new ErroSemantico(nLinha, e.erro)); }
-            
+            try { analisaLinha(linha); } 
+            catch (ErroSemantico e) {
+                erros.add(new ErroSemantico(nLinha, e.erro)); 
+            }
         }
         
         Collections.sort(erros);
-        for (ErroSemantico erro : erros) {
-            System.err.println(erro);
+        for (ErroSemantico e : erros) {
+            System.err.println(e);
         }
         
-        System.out.println("Analise Semantica:");
-        if(print){
+        if(print && erros.isEmpty()){
+            System.out.println("Analise Semantica:");
             tabelaSimbolos.print();
         }
+        
+        return !erros.isEmpty();
     }
 }

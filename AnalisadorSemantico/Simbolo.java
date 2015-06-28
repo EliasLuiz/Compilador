@@ -8,7 +8,6 @@ public class Simbolo {
     public String hash;
     public int ultimoUso;
     public boolean isFuncao;
-    public boolean isVetor;
     
     ArrayList<String> parametros;
     //Parametros armazena o tipo dos parametros da funcao
@@ -19,7 +18,6 @@ public class Simbolo {
         this.hash = hash;
         this.ultimoUso = ultimoUso;
         this.isFuncao = isFuncao;
-        this.isVetor = isVetor;
         this.parametros = null;
         if(isFuncao)
             this.parametros = new ArrayList<>();
@@ -47,8 +45,6 @@ public class Simbolo {
                 if (i != null)
                     ret += i + ", ";
             ret = ret.substring(0, ret.length()-2);
-        } else if (isVetor) {
-            ret += "\nvetor";
         }
         return ret;
     }

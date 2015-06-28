@@ -3,17 +3,18 @@ package AnalisadorSintatico;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.LinkedList;
+import java.util.ArrayList;
 
 
 public class ArvoreBinaria<T> implements Serializable{
     
-    private ArvoreBinaria<T> esq, dir;
+    private ArvoreBinaria<T> esq, dir, pai;
     private T nodo;
     
     public ArvoreBinaria(T node){
         esq = null;
         dir = null;
+        pai = null;
         nodo = node;
     }
     
@@ -30,6 +31,7 @@ public class ArvoreBinaria<T> implements Serializable{
     }
 
     public void setEsq(ArvoreBinaria<T> esq) {
+        esq.pai = this;
         this.esq = esq;
     }
 
@@ -38,6 +40,7 @@ public class ArvoreBinaria<T> implements Serializable{
     }
 
     public void setDir(ArvoreBinaria<T> dir) {
+        dir.pai = this;
         this.dir = dir;
     }
     
@@ -68,7 +71,7 @@ public class ArvoreBinaria<T> implements Serializable{
     public void print(){
         int alt = altura();
         int esp = (int) (Math.pow(2, alt));
-        LinkedList<ArvoreBinaria<T>> fila;
+        ArrayList<ArvoreBinaria<T>> fila;
         for (int i = 0; i < alt; i++) {
             fila = this.folhas(i);
             for (int j = 0; j < esp/2-1; j++)
@@ -84,17 +87,17 @@ public class ArvoreBinaria<T> implements Serializable{
             System.out.println("");
         }
     }
-    protected LinkedList<ArvoreBinaria<T>> folhas(int altura){
-        LinkedList<ArvoreBinaria<T>> fila = new LinkedList<>();
+    public ArrayList<ArvoreBinaria<T>> folhas(int altura){
+        ArrayList<ArvoreBinaria<T>> fila = new ArrayList<>();
         if(altura == 0)
             fila.add(this);
         else{
-            LinkedList<ArvoreBinaria<T>> fAux;
+            ArrayList<ArvoreBinaria<T>> fAux;
             
             if(esq != null)
                 fAux = esq.folhas(altura-1);
             else{
-                fAux = new LinkedList<>();
+                fAux = new ArrayList<>();
                 fAux.add(null);
             }
             for (ArvoreBinaria<T> fila1 : fAux) {
@@ -104,7 +107,7 @@ public class ArvoreBinaria<T> implements Serializable{
             if(dir != null)
                 fAux = dir.folhas(altura-1);
             else{
-                fAux = new LinkedList<>();
+                fAux = new ArrayList<>();
                 fAux.add(null);
             }
             for (ArvoreBinaria<T> fila1 : fAux) {
