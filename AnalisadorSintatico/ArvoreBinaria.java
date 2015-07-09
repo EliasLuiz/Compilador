@@ -138,4 +138,14 @@ public class ArvoreBinaria<T> implements Serializable{
             return aux;
         }
     }
+    public int nOperacoes(){
+        int hEsq = 0, hDir = 0;
+        if(esq == null && dir == null)
+            return 0;
+        if(esq != null)
+            hEsq = esq.nOperacoes();
+        if(dir != null)
+            hDir = dir.nOperacoes();
+        return 1 + hEsq + hDir;
+    }
 }

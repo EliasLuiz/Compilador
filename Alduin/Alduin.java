@@ -205,7 +205,7 @@ public class Alduin {
             } else {
                 g = new GeradorCodigo(opath, l.getTokens(), si.getArvores(), se.getTabelaSimbolos());
             }
-            g.executar(print);
+            g.executar();
         } catch (Exception ex) {
             Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
             System.exit(3);

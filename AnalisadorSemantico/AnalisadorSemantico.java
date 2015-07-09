@@ -350,7 +350,8 @@ public class AnalisadorSemantico {
                 
                 //Adiciona parametro da funcao na tabela de simbolos
                 int cont = 0;
-                for (int i = 3; i < linha.size()-1; i++) {
+                fim = linha.size()-1;
+                for (int i = 3; i < fim; i++) {
                     int limite = indexOf(linha, new Token(",", ""), i, fim) -1 ;
                     if(limite == -2)
                         limite = fim-1;
