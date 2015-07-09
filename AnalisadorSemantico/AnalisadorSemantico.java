@@ -241,17 +241,14 @@ public class AnalisadorSemantico {
                    && "null".equals(tipoEsq) 
                    && "bool".equals(tipoDir))               //Se e operador logico unario
                || (    op == 9 
-                   && (   (   tipoDir.equals(tipoEsq) 
-                           && (   "str".equals(tipoDir) 
-                               || "num".equals(tipoDir)))
-                       || (   "str".equals(tipoEsq)
-                           && "num".equals(tipoDir))))     //Se e operador +
+                   &&  tipoDir.equals(tipoEsq) 
+                   && "num".equals(tipoDir))                //Se e operador +
                || (    op == 10 
                    && (   (   tipoDir.equals(tipoEsq) 
                            && "num".equals(tipoDir))
                        || 
                           (   "null".equals(tipoEsq)
-                           && "num".equals(tipoDir))))     //Se e operador -
+                           && "num".equals(tipoDir))))      //Se e operador -
                || (   op < 13 
                    && tipoDir.equals(tipoEsq) 
                    && "num".equals(tipoDir))                //Se e operador aritimetico binario
@@ -337,7 +334,7 @@ public class AnalisadorSemantico {
         int backupLinha = nLinha;
         
         
-        boolean naFuncao = false;
+        boolean naFuncao = false, encontrouFuncao = false;
         
         for (Map.Entry<Integer, ArrayList<Token>> entrySet : linhas.entrySet()) {
             nLinha = entrySet.getKey();
@@ -348,6 +345,7 @@ public class AnalisadorSemantico {
                && contains(linha, new Token("def", ""), 0, linha.size()-1)){
                 
                 naFuncao = true;
+                encontrouFuncao = true;
                 escopos.adicionaEscopo();
                 
                 //Adiciona parametro da funcao na tabela de simbolos
@@ -398,6 +396,10 @@ public class AnalisadorSemantico {
         backup.idEscopo = escopos.idEscopo;
         escopos = backup;
         nLinha = backupLinha;
+        
+        //Caso a funcao nao tenha sido declarada
+        if(!encontrouFuncao)
+            throw new ErroSemantico("Funcao " + funcao.nome + " nao declarada.");
         
         escopos.adicionaFuncao(funcao.nome);
         tabelaSimbolos.addSimbolo(funcao);

@@ -1,7 +1,6 @@
 package AnalisadorSintatico;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.ArrayList;
 
@@ -124,5 +123,19 @@ public class ArvoreBinaria<T> implements Serializable{
         if(dir != null)
             hDir = dir.altura();
         return 1 + (hEsq > hDir ? hEsq : hDir);
+    }
+    
+    public ArvoreBinaria<T> subarvoreReplace(T substituto){
+        if(esq.altura() > 1)
+            return esq.subarvoreReplace(substituto);
+        else if(dir.altura() > 1)
+            return dir.subarvoreReplace(substituto);
+        else{
+            ArvoreBinaria<T> aux = this;
+            this.nodo = substituto;
+            this.esq = null;
+            this.dir = null;
+            return aux;
+        }
     }
 }

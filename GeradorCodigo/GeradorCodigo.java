@@ -24,6 +24,7 @@ public class GeradorCodigo {
     private BufferedWriter file;
     //Vetor para controle de quem esta em cada um dos 10 "registradores"
     private String[] variaveis;
+    private String[] variaveisAssociadas;
     
     
     
@@ -33,6 +34,7 @@ public class GeradorCodigo {
         carregar(pathTo, pathA, pathTa);
         this.file = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(new File(out))));
         variaveis = new String[10];
+        variaveisAssociadas = new String[10];
     }
     public GeradorCodigo(String out,
                          LinkedHashMap<Integer, ArrayList<Token>> linhas,
@@ -44,6 +46,7 @@ public class GeradorCodigo {
         this.tabelaSimbolos = tabelaSimbolos;
         this.file = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(new File(out))));
         variaveis = new String[10];
+        variaveisAssociadas = new String[10];
     }
 
     
@@ -73,6 +76,32 @@ public class GeradorCodigo {
     
     
     /* FUNCOES AUXILIARES */
+    private String token(Token t){
+        switch(t.getTipo()){
+            case "str":
+            case "int":
+            case "float":
+            case "fun":
+            case "id":
+                return t.getValor();
+            case "and":
+                return "&&";
+            case "or":
+                return "||";
+            case "not":
+                return "!";
+            case "def":
+                return "function";
+            case "endfor":
+            case "endif":
+            case "endwhile":
+            case "enddef":
+            case "end":
+                return "}";
+            default:
+                return t.getTipo();
+        }
+    }
     private void se(ArrayList<Token> linha){
         
     }
@@ -89,6 +118,10 @@ public class GeradorCodigo {
         
     }
     private void enquanto(ArrayList<Token> linha){
+        escrever("while(");
+        for (int i = 0; i < linha.size(); i++) {
+        }
+        escrever("){\n");
         
     }
     private void fim(){
@@ -96,7 +129,8 @@ public class GeradorCodigo {
     }
     private ArrayList<ArrayList<Token>> leArvore(int nLinha){
         ArvoreBinaria<Token> arvore = arvores.get(nLinha);
-        
+        if(arvore == null)
+        return null;
     }
     private void atribuicao(int nLinha){
         
