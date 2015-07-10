@@ -18,6 +18,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class GeradorCodigo {
 
@@ -78,38 +80,38 @@ public class GeradorCodigo {
         fis.close();
         ois.close();
     }
-    private void escrever(String linha) {
-        try {
-            file.write(linha + "\n");
-        } catch (IOException ex) {
-            ex.printStackTrace();
-            System.exit(3);
-        }
-    }
 
     
     
     /* FUNCOES AUXILIARES */
     //Otimizacao
-    private int getRegistrador(int linha) {
-        try {
-            for (int i = 0; i < variaveis.length; i++)
-                if (variaveis[i].isEmpty() || 
-                    tabelaSimbolos.getSimbolo(escopos.getVariavel(variaveis[i]), 0).ultimoUso < linha) {
+    private int getRegistrador() {
+        for (int i = 0; i < variaveis.length; i++){
+            String x = "";
+            x = variaveis[i];
+            try{
+                if (tabelaSimbolos.getSimbolo(x, 0).ultimoUso < nLinha) {
                     return i;
                 }
-        } catch (ErroSemantico e) {}
+            } catch (Exception e) { 
+                //Caso tenha saido do escopo da variavel
+                return i;
+            }
+        }
         return -1;
     }
-    private void addVariavel(String nome, int linha) throws ErroOtimizacao{
+    private void addVariavel(String nome) throws ErroOtimizacao{
         if(buscaVariavel(nome) != -1)
             return;
-        int x = getRegistrador(linha);
+        int x = getRegistrador();
         if(x == -1)
-            throw new ErroOtimizacao(linha, "Quantidade de registradores estourada.");
-        variaveis[x] = nome;
+            throw new ErroOtimizacao(nLinha, "Quantidade de registradores estourada.");
+        try { variaveis[x] = escopos.getVariavel(nome); } 
+        catch (ErroSemantico e) {}
     }
     private int buscaVariavel(String nome) {
+        try{ nome = escopos.getVariavel(nome); }
+        catch (ErroSemantico e) { return -1; }
         for (int i = 0; i < variaveis.length; i++)
             if (variaveis[i].equals(nome))
                 return i;
@@ -132,13 +134,17 @@ public class GeradorCodigo {
     private String token(Token t) throws ErroOtimizacao {
         switch (t.getTipo()) {
             case "str":
+                return "\"" + t.getValor() + "\"";
             case "int":
             case "float":
-            case "fun":
+            case "array":
                 return t.getValor();
+            case "fun":
+                return chamadaFuncao(t).getValor();
             case "id":
-                addVariavel(t.getValor(), nLinha);
-                return "a" + buscaVariavel(t.getValor()) + " ";
+                escopos.adicionaVariavel(t.getValor());
+                addVariavel(t.getValor());
+                return "a" + buscaVariavel(t.getValor());
             case "and":
                 return "&&";
             case "or":
@@ -151,14 +157,14 @@ public class GeradorCodigo {
             case "endif":
             case "endwhile":
             case "enddef":
-                return "}";
+                return "}\n";
             case "if":
             case "while":
             case "for":
                 return t.getTipo() + "(";
             case "then":
             case "do":
-                return "){";
+                return "){\n";
             case "from":
                 return "=";
             case "end":
@@ -173,34 +179,52 @@ public class GeradorCodigo {
         if (arvore == null)
             return null;
         int cont = 0;
-        int linhaFinal = nLinha + arvore.nOperacoes();
         while(arvore.altura() != 1){
-            lista.add(arvore.subarvoreReplace(new Token("id", ".aux" + cont)).inOrdem());
-            lista.get(lista.size()-1).add(0, new Token("=", ""));
-            lista.get(lista.size()-1).add(0, new Token("id", ".aux" + cont));
-            escopos.adicionaVariavel(".aux" + cont);
-            try{
-                tabelaSimbolos.addSimbolo(new Simbolo(".aux" + cont, "", 
-                        escopos.getVariavel(".aux" + cont), linhaFinal, false, false));
-            } catch (ErroSemantico e){}
+            ArrayList<Token> x = arvore.subarvoreReplace(new Token("id", ".aux" + cont)).inOrdem();
+            lista.add(x);
+            //Se a atribuicao final
+            if(!x.contains(new Token("=", ""))){
+                lista.get(lista.size()-1).add(0, new Token("=", ""));
+                lista.get(lista.size()-1).add(0, new Token("id", ".aux" + cont));
+                escopos.adicionaVariavel(".aux" + cont);
+                try{
+                    tabelaSimbolos.addSimbolo(new Simbolo(".aux" + cont, "", 
+                            escopos.getVariavel(".aux" + cont), nLinha, false, false));
+                } catch (ErroSemantico e){}
+            }
         }
         return lista;
     }
     private void declaraVariaveis(){
+        String s = "var ";
         for (int i = 0; i < 10; i++)
-            try { file.append("var a" + i + ";"); 
-            } catch (IOException e) {
-                e.printStackTrace();
-                System.exit(3);
-            }
+            s+="a"+i+",";
+        try { file.append(s.substring(0,s.length()-1) + ";\n"); 
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(3);
+        }
+    }
+    private Token chamadaFuncao(Token funcao){
+        //funcao(x,y) => funcao(a0,a1)
+        String[] aux = funcao.getValor().split("[(]");
+        String nome = aux[0];
+        String param = aux[1].substring(0, aux[1].length()-1);
+        String[] parametros = param.split(",");
+        String s = nome += "(";
+        for(String p : parametros)
+            s+=buscaVariavel(p);
+        s += ")";
+        return new Token("fun", s);
     }
     private void atribuicao() throws ErroOtimizacao {
         ArrayList<ArrayList<Token>> listas = leArvore();
         for (ArrayList<Token> lista : listas){
+            String s = "";
+            for (Token t : lista)
+                s += token(t);
             try {
-                for (Token t : lista)
-                    file.append(token(t));
-                file.append(";\n");
+                file.append(s+";\n");
             } catch (IOException e) {
                 e.printStackTrace();
                 System.exit(3);
@@ -208,11 +232,62 @@ public class GeradorCodigo {
         }
     }
     
-    private void executarLinha(ArrayList<Token> linha) {
+    private void executarLinha(ArrayList<Token> linha) throws IOException, ErroOtimizacao {
         //casos especiais:
+        
+        //  atribuicao
+        if(linha.contains(new Token("=", "")))
+            atribuicao();
         //  ate (to):
         //      conferir se parada maior ou menor
         //      imprimir "var <=|>= num; var++|--"
+        else if(linha.contains(new Token("for", ""))){
+            int idx = linha.indexOf(new Token("to", ""));
+            String op;
+            if (Integer.parseInt(linha.get(idx-1).getValor()) <
+                Integer.parseInt(linha.get(idx+1).getValor())) 
+                op = "<=";
+            else
+                op = ">=";
+            String s = "";
+            for (int i = 0; i < linha.size(); i++) {
+                Token t = linha.get(i);
+                if("to".equals(t.getTipo()))
+                    s+= ";" + token(linha.get(1)) + op;
+                else if("do".equals(t.getTipo()))
+                    s+= ";" + token(linha.get(1)) + ("<=".equals(op) ? "++" : "--") + token(t);
+                else
+                    s+=token(t);
+            }
+            file.append(s);
+        }
+        //  declaracao de vetor
+        // vetor m[3] => m = [0,0,0];
+        // vetor m[2][3] => m = [[0,0,0],[0,0,0]];
+        else if(linha.contains(new Token("vet",""))){
+            int idx2 = indexOf(linha, new Token("[", ""), 3, linha.size()-1);
+            String s = linha.get(1).getValor() + " = [";
+            for(int i = 0; i < Integer.parseInt(linha.get(3).getValor()); i++){
+                if(idx2 == -1){
+                    s += "0,";
+                }
+                else{
+                    s+="[";
+                    for(int j = 0; j < Integer.parseInt(linha.get(6).getValor()); j++){
+                        s+="0,";
+                    }
+                    s = s.substring(0,s.length()-1) + "],";
+                }
+            }
+            s = s.substring(0,s.length()-1) + "];\n";
+            file.append(s);
+        }
+        
+        else{
+            for(Token t : linha)
+                file.append(token(t));
+        }
+        
     }
     private void executarFuncao(ArrayList<Token> linhaChamada, int start) 
             throws ErroSemantico, IOException, ErroOtimizacao {
@@ -250,6 +325,11 @@ public class GeradorCodigo {
                     if("id".equals(t.getTipo()))
                     file.append(token(t));
                 }
+                file.append("{\n");
+                
+                //Declara as variaveis
+                declaraVariaveis();
+                
                 continue;
             }
 
@@ -264,47 +344,34 @@ public class GeradorCodigo {
                 break;
             }
 
-            //Analisa normalmente a funcao
-            if (linha.contains(new Token("id", nomeFun))) {
-                file.append("return ");
-                for (int i = 2; i < linha.size(); i++) {
-                    if("id".equals(linha.get(i).getTipo()))
-                        file.append("a"+buscaVariavel(linha.get(i).getValor()));
-                    else
-                        file.append(token(linha.get(i)));
-                }
-            }
-            executarLinha(linha);
-
             //Se encontrou valor de retorno
             if ("=".equals(linha.get(1).getTipo())
-                    && funcao.nome.equals(linha.get(0).getValor())) {
-                funcao.tipo = tipoExpressao(linha, 2, linha.size() - 1);
-                break;
+                    && nomeFun.equals(linha.get(0).getValor())) {
+                file.append("return ");
+                for (int i = 2; i < linha.size(); i++) {
+                    file.append(token(linha.get(i)));
+                }
+                file.append(";\n}\n");
+                continue;
             }
+            
+            executarLinha(linha);
         }
 
         //Restaura backup de escopo atualizando os ids
         backup.idEscopo = escopos.idEscopo;
         escopos = backup;
         nLinha = backupLinha;
-
-        //Caso a funcao nao tenha sido declarada
-        if (!encontrouFuncao) {
-            throw new ErroSemantico("Funcao " + funcao.nome + " nao declarada.");
-        }
-
-        escopos.adicionaFuncao(funcao.nome);
-        tabelaSimbolos.addSimbolo(funcao);
-
     }
-    //Analisa uma linha de codigo, chamando as funcoes especificas
 
     
     
     /* FUNCAO PRINCIPAL */
     public void executar() {
         boolean isFuncao = false;
+        
+        //Declara as variaveis que serao usadas
+        declaraVariaveis();
 
         //Analise do programa
         for (Map.Entry<Integer, ArrayList<Token>> entrySet : linhas.entrySet()) {
@@ -331,11 +398,46 @@ public class GeradorCodigo {
                 } catch (ErroSemantico e) { //Se nao foi declarado
                     try {
                         executarFuncao(linha, indexFun);
-                    } catch (ErroSemantico ex) {}
+                    } catch (ErroSemantico ex) {
+                    } catch (IOException ex) {
+                        ex.printStackTrace();
+                        System.exit(3);
+                    } catch (ErroOtimizacao ex) {
+                        ex.printStackTrace();
+                        System.exit(4);
+                    }
                 }
                 //Caso tenha mais de uma chamada de funcao na mesma linha
                 indexFun = indexOfTipo(linha, "fun", indexFun + 1, linha.size() - 1);
             }
+            
+            if (linha.contains(new Token("if", "")) ||
+                linha.contains(new Token("while", "")) ||
+                linha.contains(new Token("for", ""))) {
+                escopos.adicionaEscopo();
+            }
+            else if (linha.contains(new Token("endif", "")) ||
+                linha.contains(new Token("endwhile", "")) ||
+                linha.contains(new Token("endfor", ""))) {
+                escopos.removeEscopo();
+            }
+            
+            try {
+                executarLinha(linha);
+            } catch (IOException ex) {
+                ex.printStackTrace();
+                System.exit(3);
+            } catch (ErroOtimizacao ex) {
+                ex.printStackTrace();
+                System.exit(4);
+            }
+            
+        }
+        try {
+            file.close();
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            System.exit(3);
         }
     }
 }

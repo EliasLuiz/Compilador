@@ -302,6 +302,7 @@ public class AnalisadorSemantico {
     //Nota2: tipagem de funcao baseado no tipo dos parametros da 1a chamada a mesma
     //       ja que o tipo dos parametros e determinado pelo tipo dos valores passados
     //       na 1a chamada
+    //       tipo do retorno assumido como tipo do 1o comando return
     private void analisaFuncao(ArrayList<Token> linhaChamada, int start) throws ErroSemantico {
         
         //Inicializa o simbolo que representara a funcao (assume que nao esta na tabela de simbolos)

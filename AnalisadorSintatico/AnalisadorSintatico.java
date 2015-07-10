@@ -777,7 +777,7 @@ public class AnalisadorSintatico {
                               linha.get(i).getValor();
             }
             
-            return new ArvoreBinaria<>(new Token("id", valor));
+            return new ArvoreBinaria<>(new Token("array", valor));
         } else {
             throw new ErroSintatico("Termo invalido");
         }

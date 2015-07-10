@@ -1,5 +1,6 @@
 package AnalisadorSintatico;
 
+import AnalisadorLexico.Token;
 import java.io.Serializable;
 import java.util.Iterator;
 import java.util.ArrayList;
@@ -7,13 +8,12 @@ import java.util.ArrayList;
 
 public class ArvoreBinaria<T> implements Serializable{
     
-    private ArvoreBinaria<T> esq, dir, pai;
+    private ArvoreBinaria<T> esq, dir;
     private T nodo;
     
     public ArvoreBinaria(T node){
         esq = null;
         dir = null;
-        pai = null;
         nodo = node;
     }
     
@@ -30,7 +30,6 @@ public class ArvoreBinaria<T> implements Serializable{
     }
 
     public void setEsq(ArvoreBinaria<T> esq) {
-        esq.pai = this;
         this.esq = esq;
     }
 
@@ -39,7 +38,6 @@ public class ArvoreBinaria<T> implements Serializable{
     }
 
     public void setDir(ArvoreBinaria<T> dir) {
-        dir.pai = this;
         this.dir = dir;
     }
     
@@ -128,10 +126,15 @@ public class ArvoreBinaria<T> implements Serializable{
     public ArvoreBinaria<T> subarvoreReplace(T substituto){
         if(esq.altura() > 1)
             return esq.subarvoreReplace(substituto);
-        else if(dir.altura() > 1)
+        else if(   dir.altura() > 2
+                || (   dir.altura() == 2 
+                    &&
+                       !this.nodo.equals(new Token("=",""))))
             return dir.subarvoreReplace(substituto);
         else{
-            ArvoreBinaria<T> aux = this;
+            ArvoreBinaria<T> aux = new ArvoreBinaria<>(this.nodo);
+            aux.esq = this.esq;
+            aux.dir = this.dir;
             this.nodo = substituto;
             this.esq = null;
             this.dir = null;

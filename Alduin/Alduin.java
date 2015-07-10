@@ -184,10 +184,6 @@ public class Alduin {
             System.exit(2);
         }
         if (file) {
-            /*
-             try { Files.delete(Paths.get(ipath + ".tokens.temp")); } catch (IOException ex) {
-             Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
-             }*/
             try {
                 se.salvar(ipath + ".tabela.temp");
             } catch (Exception ex) {
@@ -210,20 +206,14 @@ public class Alduin {
             Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
             System.exit(3);
         }
-        if (erro) {
-            System.exit(2);
-        }
         if (file) {
-            /*
-             try { Files.delete(Paths.get(ipath + ".tokens.temp")); } catch (IOException ex) {
-             Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
-             }
-            try {
-                se.salvar(ipath + ".arvores.temp");
-            } catch (Exception ex) {
-                Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
+            try { 
+                Files.delete(Paths.get(ipath + ".tokens.temp"));
+                Files.delete(Paths.get(ipath + ".arvores.temp"));
+                Files.delete(Paths.get(ipath + ".tabela.temp"));
+            } catch (IOException ex) {
+            Logger.getLogger(Alduin.class.getName()).log(Level.SEVERE, null, ex);
             }
-             */
         }
     }
 }

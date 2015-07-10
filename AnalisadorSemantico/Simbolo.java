@@ -46,6 +46,7 @@ public class Simbolo {
                     ret += i + ", ";
             ret = ret.substring(0, ret.length()-2);
         }
+        ret += "\nultimo uso = " + ultimoUso;
         return ret;
     }
 }
