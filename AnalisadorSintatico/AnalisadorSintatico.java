@@ -699,8 +699,8 @@ public class AnalisadorSintatico {
         
         //Geracao da arvore sintatica
         ArvoreBinaria<Token> arvore = new ArvoreBinaria<>(linha.get(maior));
-        arvore.setDir(expressao(linha, start, maior-1));
-        arvore.setEsq(expressaoPrec(linha, maior+1, end));
+        arvore.setEsq(expressao(linha, start, maior-1));
+        arvore.setDir(expressaoPrec(linha, maior+1, end));
         
         return arvore;
     }

@@ -162,6 +162,8 @@ public class GeradorCodigo {
             case "while":
             case "for":
                 return t.getTipo() + "(";
+            case "else":
+                return "}else{\n";
             case "then":
             case "do":
                 return "){\n";
@@ -192,6 +194,7 @@ public class GeradorCodigo {
                             escopos.getVariavel(".aux" + cont), nLinha, false, false));
                 } catch (ErroSemantico e){}
             }
+            cont++;
         }
         return lista;
     }
@@ -205,16 +208,40 @@ public class GeradorCodigo {
             System.exit(3);
         }
     }
-    private Token chamadaFuncao(Token funcao){
+    private Token chamadaFuncao(Token funcao) throws ErroOtimizacao{
         //funcao(x,y) => funcao(a0,a1)
         String[] aux = funcao.getValor().split("[(]");
         String nome = aux[0];
         String param = aux[1].substring(0, aux[1].length()-1);
         String[] parametros = param.split(",");
         String s = nome += "(";
-        for(String p : parametros)
-            s+=buscaVariavel(p);
-        s += ")";
+        for(String p : parametros){
+            if("".equals(p))
+                continue;
+            String v = "";
+            //Se e numero
+            try{
+                Integer.parseInt(p);
+                v = p;
+            } catch (NumberFormatException e){}
+            try{
+                Double.parseDouble(p);
+                v = p;
+            } catch (NumberFormatException e){}
+            if(v != ""){}
+            //Se e numero ou vetor
+            else if(p.contains("\"") ||
+               p.contains("["))
+                v = p;
+            //Se e funcao
+            else if(p.contains("("))
+                v = chamadaFuncao(new Token("fun", p)).getValor();
+            //Se e id
+            else
+                v = token(new Token("id", p));
+            s += v + ",";
+        }
+        s = ("".equals(parametros[0]) ? s : s.substring(0,s.length()-1)) + ")";
         return new Token("fun", s);
     }
     private void atribuicao() throws ErroOtimizacao {
@@ -236,8 +263,21 @@ public class GeradorCodigo {
         //casos especiais:
         
         //  atribuicao
-        if(linha.contains(new Token("=", "")))
+        if(linha.contains(new Token("=", ""))){
+            
+            //tela.mensagem
+            if(linha.get(0).getValor().startsWith("tela")){
+                String s = "alert(";
+                for (int i = 2; i < linha.size(); i++) {
+                    s += token(linha.get(i));
+                }
+                file.append(s + ");\n");
+                return;
+            }
+            
             atribuicao();
+        }
+        
         //  ate (to):
         //      conferir se parada maior ou menor
         //      imprimir "var <=|>= num; var++|--"
@@ -261,6 +301,7 @@ public class GeradorCodigo {
             }
             file.append(s);
         }
+        
         //  declaracao de vetor
         // vetor m[3] => m = [0,0,0];
         // vetor m[2][3] => m = [[0,0,0],[0,0,0]];
@@ -289,11 +330,8 @@ public class GeradorCodigo {
         }
         
     }
-    private void executarFuncao(ArrayList<Token> linhaChamada, int start) 
+    private void executarFuncao(String nomeFun) 
             throws ErroSemantico, IOException, ErroOtimizacao {
-
-        //Inicializa o simbolo que representara a funcao (assume que nao esta na tabela de simbolos)
-        String nomeFun = linhaChamada.get(start).getValor();
 
         //Backup dos escopos antigos e das variaveis em uso
         String[] backupVariaveis = new String[10];
@@ -306,7 +344,7 @@ public class GeradorCodigo {
         escopos.idEscopo = backup.idEscopo;
         int backupLinha = nLinha;
 
-        boolean naFuncao = false, encontrouFuncao = false;
+        boolean naFuncao = false;
 
         for (Map.Entry<Integer, ArrayList<Token>> entrySet : linhas.entrySet()) {
             nLinha = entrySet.getKey();
@@ -317,15 +355,17 @@ public class GeradorCodigo {
                     && linha.contains(new Token("def", ""))) {
 
                 naFuncao = true;
-                encontrouFuncao = true;
                 escopos.adicionaEscopo();
                 
                 //Escreve declaracao da funcao
+                String chamada = "";
                 for (Token t : linha) {
-                    if("id".equals(t.getTipo()))
-                    file.append(token(t));
+                    if("fun".equals(t.getTipo()))
+                        chamada += t.getValor();
+                    else
+                        chamada += token(t);
                 }
-                file.append("{\n");
+                file.append(chamada + "{\n");
                 
                 //Declara as variaveis
                 declaraVariaveis();
@@ -347,11 +387,11 @@ public class GeradorCodigo {
             //Se encontrou valor de retorno
             if ("=".equals(linha.get(1).getTipo())
                     && nomeFun.equals(linha.get(0).getValor())) {
-                file.append("return ");
+                String ret = "return ";
                 for (int i = 2; i < linha.size(); i++) {
-                    file.append(token(linha.get(i)));
+                    ret += token(linha.get(i));
                 }
-                file.append(";\n}\n");
+                file.append(ret + ";\n");
                 continue;
             }
             
@@ -372,7 +412,7 @@ public class GeradorCodigo {
         
         //Declara as variaveis que serao usadas
         declaraVariaveis();
-
+        
         //Analise do programa
         for (Map.Entry<Integer, ArrayList<Token>> entrySet : linhas.entrySet()) {
             nLinha = entrySet.getKey();
@@ -389,15 +429,28 @@ public class GeradorCodigo {
             if (isFuncao) {
                 continue;
             }
+            
+            if (linha.contains(new Token("if", "")) ||
+                linha.contains(new Token("while", "")) ||
+                linha.contains(new Token("for", ""))) {
+                escopos.adicionaEscopo();
+            }
+            else if (linha.contains(new Token("endif", "")) ||
+                linha.contains(new Token("endwhile", "")) ||
+                linha.contains(new Token("endfor", ""))) {
+                escopos.removeEscopo();
+            }
+            
 
             //Se encontrou chamada a uma funcao a analisa
             int indexFun = indexOfTipo(linha, "fun", 0, linha.size() - 1);
             while (indexFun != -1) {
                 try {
-                    escopos.getVariavel(linha.get(indexFun).getValor());
+                    escopos.getVariavel("." + linha.get(indexFun).getValor());
                 } catch (ErroSemantico e) { //Se nao foi declarado
+                    escopos.adicionaVariavel("." + linha.get(indexFun).getValor());
                     try {
-                        executarFuncao(linha, indexFun);
+                        executarFuncao(linha.get(indexFun).getValor());
                     } catch (ErroSemantico ex) {
                     } catch (IOException ex) {
                         ex.printStackTrace();
@@ -409,17 +462,6 @@ public class GeradorCodigo {
                 }
                 //Caso tenha mais de uma chamada de funcao na mesma linha
                 indexFun = indexOfTipo(linha, "fun", indexFun + 1, linha.size() - 1);
-            }
-            
-            if (linha.contains(new Token("if", "")) ||
-                linha.contains(new Token("while", "")) ||
-                linha.contains(new Token("for", ""))) {
-                escopos.adicionaEscopo();
-            }
-            else if (linha.contains(new Token("endif", "")) ||
-                linha.contains(new Token("endwhile", "")) ||
-                linha.contains(new Token("endfor", ""))) {
-                escopos.removeEscopo();
             }
             
             try {

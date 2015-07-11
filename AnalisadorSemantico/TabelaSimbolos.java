@@ -1,7 +1,9 @@
 package AnalisadorSemantico;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 
 public class TabelaSimbolos implements Serializable {
 
@@ -39,6 +41,19 @@ public class TabelaSimbolos implements Serializable {
             tabela.get(hash).ultimoUso = linha;
         
         return tabela.get(hash);
+    }
+    
+    public String[] getFuncoes(){
+        ArrayList<String> funcoes = new ArrayList<>();
+        for (Map.Entry<String, Simbolo> entrySet : tabela.entrySet()) 
+            if(entrySet.getValue().isFuncao)
+                funcoes.add(entrySet.getKey());
+        
+        Object[] aux = funcoes.toArray();
+        String[] ret = new String[aux.length];
+        for (int i = 0; i < ret.length; i++)
+            ret[i] = aux[i].toString();
+        return ret;
     }
 
     public void print(){

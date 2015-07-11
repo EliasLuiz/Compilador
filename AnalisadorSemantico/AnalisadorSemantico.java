@@ -320,11 +320,13 @@ public class AnalisadorSemantico {
         }
         fim--;
         //Adiciona tipo dos parametro da funcao
-        for (int i = start + 2; i < fim; i++) {
+        for (int i = start + 2; i <= fim; i++) {
             int limite = indexOf(linhaChamada, new Token(",", ""), i, fim) -1 ;
             if(limite == -2)
                 limite = fim-1;
-            funcao.addParametro(tipoExpressao(linhaChamada, i, limite));
+            String tipo = tipoExpressao(linhaChamada, i, limite);
+            if(!"null".equals(tipo))
+                funcao.addParametro(tipo);
             i = limite + 1;
         }
         
@@ -358,8 +360,14 @@ public class AnalisadorSemantico {
                         limite = fim-1;
                     String nome = linha.get(i).getValor();
                     escopos.adicionaVariavel(nome);
-                    Simbolo s = new Simbolo(nome, funcao.parametros.get(cont),
-                            escopos.getVariavel(nome), nLinha, false, false);
+                    Simbolo s = null;
+                    try{
+                        s = new Simbolo(nome, funcao.parametros.get(cont),
+                                escopos.getVariavel(nome), nLinha, false, false);
+                    } catch (IndexOutOfBoundsException e){
+                        throw new ErroSemantico("Quantidade invalida de parametros para \"" +
+                                funcao.nome + "\" (" + cont + " parametros).");
+                    }
                     tabelaSimbolos.addSimbolo(s);
                     i = limite + 1;
                     cont++;
