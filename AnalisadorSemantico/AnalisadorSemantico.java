@@ -297,6 +297,46 @@ public class AnalisadorSemantico {
         //Checagem de consistencia
         consistenciaTipo(linha, 2, linha.size()-1);
     }
+    private void testaParametros(ArrayList<Token> linhaChamada, int start) throws ErroSemantico {
+        int nivel = 0, fim = start+2;
+        //Encontrando o fim da chamada
+        for (int i = start+1; i < linhaChamada.size(); i++) {
+            Token t = linhaChamada.get(i);
+            if("(".equals(t.getTipo()))
+                nivel++;
+            else if(")".equals(t.getTipo()))
+                nivel--;
+            if(nivel == 0){
+                fim = i;
+                break;
+            }
+        }
+        ArrayList<String> params = tabelaSimbolos.getSimbolo(
+                linhaChamada.get(start).getValor(), 0).parametros;
+        int cont = 0;
+        //Testa os parametros
+        for (int i = start+2; i < fim; i++){
+            Token t = linhaChamada.get(i);
+            int limite = indexOf(linhaChamada, new Token(",", ""), start, linhaChamada.size()-1)-1;
+            if(limite == -2)
+                limite = fim;
+            try{
+                if(!tipoExpressao(linhaChamada, i, limite).equals(params.get(cont)))
+                    throw new ErroSemantico("Tipo invalido de parametro para \"" +
+                            linhaChamada.get(start).getValor() + "\" (Parametro " + cont + " e " + 
+                            tipoExpressao(linhaChamada, i, limite) + " e era esperado" +
+                            params.get(cont) + ").");
+            } catch (IndexOutOfBoundsException e){
+                throw new ErroSemantico("Quantidade invalida de parametros para \"" +
+                        linhaChamada.get(start).getValor() + "\" (" + params.size() + " parametros).");
+            }
+            i = limite+1;
+            cont++;
+        }
+        if(cont != params.size())
+            throw new ErroSemantico("Quantidade invalida de parametros para \"" +
+                    linhaChamada.get(start).getValor() + "\" (" + params.size() + " parametros).");
+    }
     //Analise/Declaracao de funcao
     //Nota: funcoes => lazy evaluation
     //Nota2: tipagem de funcao baseado no tipo dos parametros da 1a chamada a mesma
@@ -366,7 +406,7 @@ public class AnalisadorSemantico {
                                 escopos.getVariavel(nome), nLinha, false, false);
                     } catch (IndexOutOfBoundsException e){
                         throw new ErroSemantico("Quantidade invalida de parametros para \"" +
-                                funcao.nome + "\" (" + cont + " parametros).");
+                                funcao.nome + "\" (" + funcao.parametros.size() + " parametros).");
                     }
                     tabelaSimbolos.addSimbolo(s);
                     i = limite + 1;
@@ -374,7 +414,7 @@ public class AnalisadorSemantico {
                 }
                 if(cont != funcao.parametros.size())
                     throw new ErroSemantico("Quantidade invalida de parametros para \"" +
-                            funcao.nome + "\" (" + cont + " parametros).");
+                            funcao.nome + "\" (" + funcao.parametros.size() + " parametros).");
             }
             
             //Se nao esta na funcao
@@ -500,8 +540,12 @@ public class AnalisadorSemantico {
             while(indexFun != -1) {
                 try {
                     escopos.getVariavel(linha.get(indexFun).getValor());
+                    testaParametros(linha, indexFun);
                 } catch (ErroSemantico e) { //Se nao foi declarado
-                    try { analisaFuncao(linha, indexFun); } 
+                    try { 
+                        analisaFuncao(linha, indexFun);
+                        testaParametros(linha, indexFun);
+                    } 
                     catch (ErroSemantico ex) { 
                         erros.add(new ErroSemantico(nLinha, ex.erro)); 
                     }
