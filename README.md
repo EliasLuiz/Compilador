@@ -6,6 +6,6 @@ Aluno: Elias Luiz da Silva Júnior
 Professor: Leonardo Lacerda
 
 Desenvolvido utilizando:
-JDK 1.8.0 update 40
-Windows Embedded 8.1 Industry Pro x64
+JDK 1.8.0 update 40;
+Windows Embedded 8.1 Industry Pro x64;
 Netbeans IDE 8.0.2
